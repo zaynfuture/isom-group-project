@@ -6,7 +6,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 import pandas as pd
 import streamlit as st
 from isom_project.spending import demo_transactions, validate_transactions, monthly_examples, labeled_cohorts, MCC
-from isom_project.spend_models import BASE_MODEL, available, load, infer, ROOT, deployed, source_for
+from isom_project.spend_models import BASE_MODEL, BASE_MODELS, available, load, infer, ROOT, deployed, source_for
+from isom_project.forecasting import numeric_examples, predict_amounts
 from isom_project.mcc_reference import SOURCE, VERSION, REFERENCE
 
 st.set_page_config(page_title="SpendLens | Card Spending Analytics", page_icon="💳", layout="wide")
@@ -23,7 +24,7 @@ def model(task):
 
 
 def evidence(task):
-    path = ROOT / "artifacts" / f"spendlens_{task}" / "evaluation.json"
+    path = ROOT / "artifacts" / deployed(task).get("artifact_dir", f"spendlens_{task}") / "evaluation.json"
     return json.loads(path.read_text()) if path.exists() else None
 
 
@@ -60,8 +61,8 @@ if page == "Business Overview":
         {"Objective": "Next-month spending band", "Acceptance target": "Macro-F1 exceeds previous-2-month baseline", "State": task_status("forecast")},
         {"Objective": "Portfolio exploration", "Acceptance target": "Browse and summarize at least 500 transactions", "State": "Available"},
     ]), hide_index=True, use_container_width=True)
-    st.write("Two task-specific models start from Hugging Face pretrained DistilBERT weights and fine-tune separately. Model Evidence reports the saved run results and simple baselines; the Colab notebook reproduces this workflow.")
-    st.markdown(f"[Hugging Face base model](https://huggingface.co/distilbert/distilbert-base-uncased) · [Citi MCC reference]({SOURCE})")
+    st.write("Two task-specific Transformers are fine-tuned separately: MiniLM for merchant text classification and Chronos-Bolt Tiny for numeric monthly spending forecasts. Model Evidence reports actual results and baselines; the Colab notebook reproduces this workflow.")
+    st.markdown(f"[MiniLM base model](https://huggingface.co/microsoft/MiniLM-L12-H384-uncased) · [Chronos-Bolt base model](https://huggingface.co/amazon/chronos-bolt-tiny) · [Citi MCC reference]({SOURCE})")
     st.caption("MCC is a four-digit merchant classification. This demo uses a five-code crosswalk; it is not a complete universal industry taxonomy. Other codes remain unmapped.")
 
 elif page == "Transaction Explorer":
@@ -88,29 +89,37 @@ elif page == "Spending Analytics":
 
 elif page == "Model Pipelines":
     task = st.selectbox("Pipeline", ["merchant", "forecast"])
-    st.markdown(f"Pretrained model: `{BASE_MODEL}`")
+    st.markdown(f"Pretrained model: `{BASE_MODELS[task]}`")
     if available(task):
         st.caption(f"Inference checkpoint: {source_for(task)}")
     if task == "merchant":
-        st.write("Merchant description → clean text and tokenize → fine-tuned DistilBERT → label probabilities → suggested category. Known MCC mappings stay authoritative; low-confidence suggestions require review.")
+        st.write("Merchant description → clean text and tokenize → fine-tuned MiniLM → label probabilities → suggested category. Known MCC mappings stay authoritative; low-confidence suggestions require review. Softmax scores are not calibrated confidence guarantees.")
         texts = [text.strip() for text in st.text_area("Merchant descriptions, one per line", "Fresh Market 12\nHarbor Hotel 8").splitlines() if text.strip()]
     else:
-        st.write("Two complete months of category purchase totals → serialized monthly context → fine-tuned DistilBERT → next-month purchase band. Inputs exclude future transactions and demographic labels.")
+        st.write("Two complete monthly purchase totals → numeric scaling and patching → fine-tuned Chronos-Bolt → next-month amount quantiles → spending band. Inputs exclude future transactions and demographic labels. Two observations provide very limited forecasting evidence.")
         st.caption("USD bands: LOW < 200; MEDIUM 200–399.99; HIGH ≥ 400. These demo thresholds require business calibration.")
         if currency != "USD":
             st.info("The configured forecast bands support USD only."); st.stop()
-        examples = monthly_examples(data)
+        examples = numeric_examples(data)
         st.dataframe(examples, height=350, use_container_width=True)
         st.caption("Historical backtest examples; the last observed month is excluded as a target. Complete monthly account coverage is required.")
         limit = st.selectbox("Records to score", [20, 120, 600], help="Limit inference work per run on shared cloud resources.")
-        texts = examples.text.head(limit).tolist() if not examples.empty else []
+        texts = examples.context.head(limit).tolist() if not examples.empty else []
     if not available(task):
         st.info("Awaiting fine-tuning. Configure the task checkpoint after Colab training, evaluation and upload to zhengzhihust.")
     if st.button("Run Transformer inference", disabled=not available(task) or not texts):
         try:
-            labels, scores = infer(model(task), texts)
-            result = pd.DataFrame({"input":texts,"prediction":labels,"probability":scores})
-            result["review_required"] = result.probability < .7
+            if task == "forecast":
+                result = predict_amounts(model(task), texts)
+                result.insert(0,"card_id",examples.card_id.head(len(result)).tolist())
+                result.insert(1,"target_month",examples.target_month.head(len(result)).tolist())
+                st.caption("p10–p90 is a nominal 80% forecast interval, not a classification probability. Coverage must be validated. These are historical backtest forecasts, not live next-month predictions.")
+                if evidence(task) and evidence(task)["test"]["test_macro_f1"] <= evidence(task)["baseline"]["macro_f1"]:
+                    st.warning("This model has not beaten the baseline on spending-band Macro-F1. Treat it as an experimental model, not an automated business decision rule.")
+            else:
+                labels, scores = infer(model(task), texts)
+                result = pd.DataFrame({"input":texts,"prediction":labels,"probability":scores})
+                result["review_required"] = result.probability < .7
             st.dataframe(result, use_container_width=True)
             st.download_button("Download predictions", result.to_csv(index=False), "predictions.csv", "text/csv")
         except Exception as exc:
@@ -138,7 +147,7 @@ else:
     st.write("Task-specific evidence is generated only after fine-tuning. Previous FairnessLens demographic results do not evaluate these models.")
     for task in ["merchant", "forecast"]:
         st.subheader(task.title())
-        path = ROOT / "artifacts" / f"spendlens_{task}" / "evaluation.json"
+        path = ROOT / "artifacts" / deployed(task).get("artifact_dir",f"spendlens_{task}") / "evaluation.json"
         if path.exists():
             result = json.loads(path.read_text())
             a,b = st.columns(2)
@@ -146,6 +155,11 @@ else:
             b.metric("Baseline Macro-F1", f"{result['baseline']['macro_f1']:.3f}")
             st.write(task_status(task))
             st.caption(f"Baseline: {result['baseline']['name']}. Data: {result['data_source']}.")
+            if "test_mae" in result["test"]:
+                c,d = st.columns(2)
+                c.metric("Test amount MAE (USD)",f"{result['test']['test_mae']:.2f}")
+                d.metric("Baseline amount MAE (USD)",f"{result['baseline']['mae']:.2f}")
+                st.caption(f"Nominal 80% interval empirical coverage: {result['test']['test_interval_80_coverage']:.1%}")
             st.dataframe(pd.DataFrame(result['confusion_matrix'], index=result['labels'], columns=result['labels']), use_container_width=True)
             history_path = path.with_name("training_history.json")
             if history_path.exists():

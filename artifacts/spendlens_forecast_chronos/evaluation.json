@@ -1,0 +1,89 @@
+{
+  "train": {
+    "train_mae": 83.1446468963623,
+    "train_macro_f1": 0.3522200742581853,
+    "train_accuracy": 0.75,
+    "train_mean_pinball_loss": 34.799516400231255,
+    "train_interval_80_coverage": 0.7777777777777778,
+    "train_interval_80_mean_width": 449.69333930545383
+  },
+  "validation": {
+    "validation_mae": 81.27666947428385,
+    "validation_macro_f1": 0.30666666666666664,
+    "validation_accuracy": 0.7083333333333334,
+    "validation_mean_pinball_loss": 33.62886032613118,
+    "validation_interval_80_coverage": 0.775,
+    "validation_interval_80_mean_width": 422.81904220581055
+  },
+  "test": {
+    "test_mae": 89.64364039611816,
+    "test_macro_f1": 0.37556776556776555,
+    "test_accuracy": 0.7166666666666667,
+    "test_mean_pinball_loss": 36.09947226333618,
+    "test_interval_80_coverage": 0.7833333333333333,
+    "test_interval_80_mean_width": 431.8102128982544
+  },
+  "confusion_matrix": [
+    [
+      2,
+      0,
+      18
+    ],
+    [
+      0,
+      1,
+      11
+    ],
+    [
+      4,
+      1,
+      83
+    ]
+  ],
+  "base_model": "amazon/chronos-bolt-tiny",
+  "base_revision": "a0e552de83495b5c28c14c71c374f3e33280b340",
+  "architecture": "chronos-bolt",
+  "parameter_count": 8652672,
+  "training_seconds": 35.58317633304978,
+  "best_epoch": 3,
+  "selection_metric": "validation mean pinball loss; test never selects checkpoints",
+  "pretrained_validation": {
+    "mae": 91.88453707122804,
+    "macro_f1": 0.30981721614826113,
+    "accuracy": 0.625,
+    "mean_pinball_loss": 39.40939590411716,
+    "interval_80_coverage": 0.7833333333333333,
+    "interval_80_mean_width": 554.3462576548259
+  },
+  "labels": [
+    "HIGH",
+    "LOW",
+    "MEDIUM"
+  ],
+  "split_counts": {
+    "train": 360,
+    "validation": 120,
+    "test": 120
+  },
+  "split_months": {
+    "train": [
+      "2025-03",
+      "2025-04",
+      "2025-05"
+    ],
+    "validation": [
+      "2025-06"
+    ],
+    "test": [
+      "2025-07"
+    ]
+  },
+  "baseline": {
+    "name": "previous two-month average",
+    "mae": 92.14516666666665,
+    "macro_f1": 0.3863945578231293
+  },
+  "data_source": "synthetic demo",
+  "limitations": "Only two monthly observations per input. Demo future amounts have little predictable structure. Same cards recur across temporal splits; July test targets were previously inspected for DistilBERT. Real external validation is required. No demographic inference. Quantile coverage is empirical, not guaranteed.",
+  "postprocessing": "Clip purchases to nonnegative, sort quantiles, interpolate p10/p50/p90; USD bands <200/<400/otherwise."
+}

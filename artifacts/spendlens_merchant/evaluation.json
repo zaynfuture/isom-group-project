@@ -1,0 +1,85 @@
+{
+  "train": {
+    "train_loss": 0.0017904466949403286,
+    "train_accuracy": 1.0,
+    "train_macro_f1": 1.0,
+    "train_runtime": 8.3413,
+    "train_samples_per_second": 644.502,
+    "train_steps_per_second": 20.141,
+    "epoch": 3.0
+  },
+  "validation": {
+    "validation_loss": 0.001792247872799635,
+    "validation_accuracy": 1.0,
+    "validation_macro_f1": 1.0,
+    "validation_runtime": 1.8876,
+    "validation_samples_per_second": 610.302,
+    "validation_steps_per_second": 19.072,
+    "epoch": 3.0
+  },
+  "test": {
+    "test_loss": 0.0017928481101989746,
+    "test_accuracy": 1.0,
+    "test_macro_f1": 1.0,
+    "test_runtime": 1.8304,
+    "test_samples_per_second": 629.372,
+    "test_steps_per_second": 19.668,
+    "epoch": 3.0
+  },
+  "baseline": {
+    "name": "training majority class",
+    "macro_f1": 0.06896551724137931
+  },
+  "confusion_matrix": [
+    [
+      223,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      240,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      213,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      241,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      235
+    ]
+  ],
+  "labels": [
+    "Department stores",
+    "Dining",
+    "Fuel",
+    "Grocery",
+    "Lodging"
+  ],
+  "split_counts": {
+    "train": 5376,
+    "test": 1152,
+    "validation": 1152
+  },
+  "base_model": "distilbert/distilbert-base-uncased",
+  "data_source": "synthetic demo",
+  "limitations": "Requires representative external validation. Card splits can share merchants; forecasting assumes complete calendar-month coverage. Demo amounts are USD."
+}

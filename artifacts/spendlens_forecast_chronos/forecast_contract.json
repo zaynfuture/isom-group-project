@@ -1,0 +1,11 @@
+{
+  "context_months": 2,
+  "horizon_months": 1,
+  "currency": "USD",
+  "bands": [
+    200,
+    400
+  ],
+  "amount": "positive purchases",
+  "chronos_version": "2.3.2"
+}

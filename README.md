@@ -8,17 +8,33 @@ The main Streamlit entry point now serves card spending analytics. Run `streamli
 
 - Browse 7,680 synthetic transactions for 120 cards across eight months, or validate an anonymized CSV.
 - View currency-separated purchases, refunds, net spending and category trends.
-- Pipeline 1: pretrained DistilBERT fine-tuned for merchant category classification.
-- Pipeline 2: a separate pretrained DistilBERT checkpoint fine-tuned for next-month spending bands.
-- Both new models await fine-tuning. `SpendLens_Colab.ipynb` supplies training, evaluation, save/reload checks and upload steps. No new model metrics are claimed yet.
+- Pipeline 1: pretrained Microsoft MiniLM fine-tuned for merchant category classification.
+- Pipeline 2: pretrained Amazon Chronos-Bolt Tiny fine-tuned on numeric monthly purchases, producing next-month p10/p50/p90 amounts and derived spending bands.
+- `SpendLens_Colab.ipynb` supplies reproducible training, evaluation, save/reload checks and explicit upload steps. Model Evidence shows committed run artifacts; never treat synthetic results as production validation.
 - MCC reference: [user-supplied Citi manual](https://www.citibank.com/tts/solutions/commercial-cards/assets/docs/govt/Merchant-Category-Codes.pdf). The reviewed mapping contains five codes; raw MCC, normalized description and mapping version are retained. Other codes are explicitly unmapped.
-- Optional authorized demographic labels support aggregate comparisons; identities are not inferred from spending.
+- FairnessLens compares gender, age-band and ethnicity spending disparities using authorized labels, card-level permutation tests, Holm correction and bootstrap intervals. Statistical differences do not establish discrimination; identities are not inferred from spending.
 
-After training, authenticate as `zhengzhihust` and run `python scripts/upload_spendlens.py --task merchant` and `--task forecast`. These upload artifacts to `zhengzhihust/spendlens-merchant-classifier` and `zhengzhihust/spendlens-spending-forecast`. Configure root-level Streamlit secrets `SPENDLENS_MERCHANT_MODEL` and `SPENDLENS_FORECAST_MODEL` with those IDs after successful uploads. Never commit credentials.
+Model repositories: [merchant MiniLM](https://huggingface.co/zhengzhihust/spendlens-merchant-minilm) and [spending Chronos-Bolt](https://huggingface.co/zhengzhihust/spendlens-spending-chronos-bolt-tiny). The application uses `artifacts/spendlens_deployment.json` to pin verified revisions and matching evaluation directories. Do not replace a verified revision with a moving branch or commit credentials. Existing environment overrides take precedence and must match the task architecture.
 
-Current scope: working analytics and deployable training/inference code. Remaining course work: execute both fine-tuning runs, review held-out/baseline results, upload models, verify cloud inference, and prepare report/PPT/video. Real financial-data use additionally requires controlled hosting, authentication and approved data access; the public app is a synthetic demonstration.
+Reproduce in Colab or a compatible Python environment:
 
-Specification: `specs/002-spendlens.md`. Historical FairnessLens documentation follows for traceability.
+```sh
+pip install -r requirements.txt
+python scripts/train_spendlens.py --task merchant --model-name microsoft/MiniLM-L12-H384-uncased --epochs 3 --output-dir artifacts/spendlens_merchant_minilm
+python scripts/train_spendlens_chronos.py --epochs 5 --output-dir artifacts/spendlens_forecast_chronos
+# Authenticate locally using the Hugging Face CLI or notebook_login (never put tokens in code).
+python scripts/upload_spendlens.py --task merchant --folder artifacts/spendlens_merchant_minilm --repo-id zhengzhihust/spendlens-merchant-minilm
+python scripts/upload_spendlens.py --task forecast --folder artifacts/spendlens_forecast_chronos --repo-id zhengzhihust/spendlens-spending-chronos-bolt-tiny
+python scripts/verify_spendlens_hub.py
+```
+
+Use fresh output directories for reruns: training scripts protect existing model weights. Chronos is trained directly with PyTorch using the official library, not a text tokenizer. Source code and evaluation JSON go to GitHub; weights go only to Hugging Face.
+
+MiniLM synthetic test Macro-F1: **1.000**, equal to historical DistilBERT; 33.4M parameters. This is a footprint improvement, not demonstrated accuracy improvement. Chronos synthetic test: MAE **89.64 USD** vs baseline **92.15 USD**; band Macro-F1 **0.376** vs baseline **0.386** and historical DistilBERT **0.282**. Nominal 80% interval coverage: **78.3%**. This is mixed evidence, not a universal model improvement. Only two monthly observations are available per input and the synthetic generator has little predictive structure. Merchant templates overlap across card-held-out splits, so perfect template accuracy does not demonstrate unseen-merchant generalization. Test targets have been inspected in prior experiments.
+
+Current scope: enterprise spending analytics, FairnessLens screening and task-specific fine-tuning/publication workflows. Report/PPT/video remain separate deliverables. Real financial-data use additionally requires controlled hosting, authentication, representative labeled data, longer account histories and approved data access; the public app uses synthetic demonstration data.
+
+Specifications: `specs/002-spendlens.md`, `specs/003-fairnesslens-spending.md` and `specs/004-task-specific-pretraining.md`. Historical FairnessLens documentation below is retained for traceability, not as the current training instructions.
 
 ## FairnessLens: Demographic Imputation for Fairness Evaluation
 

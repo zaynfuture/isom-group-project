@@ -1,0 +1,90 @@
+{
+  "train": {
+    "train_loss": 0.05221511796116829,
+    "train_accuracy": 1.0,
+    "train_macro_f1": 1.0,
+    "train_runtime": 6.9871,
+    "train_samples_per_second": 769.421,
+    "train_steps_per_second": 24.044,
+    "epoch": 3.0
+  },
+  "validation": {
+    "validation_loss": 0.05237726494669914,
+    "validation_accuracy": 1.0,
+    "validation_macro_f1": 1.0,
+    "validation_runtime": 1.3788,
+    "validation_samples_per_second": 835.522,
+    "validation_steps_per_second": 26.11,
+    "epoch": 3.0
+  },
+  "test": {
+    "test_loss": 0.05212141573429108,
+    "test_accuracy": 1.0,
+    "test_macro_f1": 1.0,
+    "test_runtime": 1.7601,
+    "test_samples_per_second": 654.515,
+    "test_steps_per_second": 20.454,
+    "epoch": 3.0
+  },
+  "baseline": {
+    "name": "training majority class",
+    "macro_f1": 0.06896551724137931
+  },
+  "confusion_matrix": [
+    [
+      223,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      240,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      213,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      241,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      235
+    ]
+  ],
+  "labels": [
+    "Department stores",
+    "Dining",
+    "Fuel",
+    "Grocery",
+    "Lodging"
+  ],
+  "split_counts": {
+    "train": 5376,
+    "test": 1152,
+    "validation": 1152
+  },
+  "base_model": "microsoft/MiniLM-L12-H384-uncased",
+  "base_revision": "44acabbec0ef496f6dbc93adadea57f376b7c0ec",
+  "parameter_count": 33361925,
+  "training_seconds": 529.2438544580364,
+  "selection_metric": "validation macro_f1; test is not used for checkpoint selection",
+  "best_checkpoint": "checkpoint-336",
+  "data_source": "synthetic demo",
+  "limitations": "Requires representative external validation. Card splits can share merchants; forecasting assumes complete calendar-month coverage. Demo amounts are USD."
+}

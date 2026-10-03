@@ -1,13 +1,13 @@
 # SpendLens implementation contract
 
 ## Business objective
-Fictional Meridian Card Services supports portfolio analysts with category coverage, spending forecasts and authorized cohort comparisons. Predict behavior, not demographic identity. Card identifiers are anonymized tokens; cards are not necessarily people.
+SpendLens serves enterprise portfolio analysts with merchant category coverage, spending forecasts and authorized cohort disparity comparisons. Predict behavior, not demographic identity. Card identifiers are anonymized tokens; cards are not necessarily people.
 
 ## Two model pipelines
-1. Merchant description -> text normalization/tokenization -> pretrained DistilBERT fine-tuned for five demo category labels -> probabilities and review flag.
-2. Two complete months of category purchase totals -> temporal text -> separately fine-tuned pretrained DistilBERT -> next-month USD purchase band.
+1. Merchant description -> text normalization/tokenization -> pretrained MiniLM fine-tuned for five demo category labels -> probabilities and review flag.
+2. Two complete monthly purchase totals -> numeric scaling/patching -> fine-tuned Chronos-Bolt Tiny -> next-month USD amount quantiles and derived purchase band.
 
-Base model: distilbert/distilbert-base-uncased. Fine-tuning remains a later explicit Colab action. Random classification heads are never served as trained models. Existing FairnessLens results do not transfer.
+Base models and reproducible training/publication contract: specs/004-task-specific-pretraining.md. Fine-tuning is an explicit offline/Colab action. Random classification heads are never served as trained models. Existing FairnessLens results do not transfer. Current FairnessLens disparity screening is specified in specs/003-fairnesslens-spending.md.
 
 ## Data contract
 Required CSV fields: transaction_id, card_id, timestamp, amount, currency, mcc, merchant_description, city, channel. Unique transaction IDs, finite signed amounts, parseable UTC timestamps. Refunds are negative. MCC is four digits or missing. Five-code demonstration crosswalk; all other MCCs stay unmapped. Separate currencies; no assumed FX conversion. Maximum 100,000 records per batch. Demo: 7,680 transactions, 120 cards, eight months.
@@ -21,7 +21,7 @@ Forecast: chronological target-month splits, last evaluable month test, precedin
 ## Deployment and acceptance
 
 Public application URL: https://spendlens-card-analytics.streamlit.app/
-App files -> existing public GitHub repository -> existing Streamlit Cloud URL. Model files -> zhengzhihust/spendlens-merchant-classifier and zhengzhihust/spendlens-spending-forecast. Upload model, tokenizer, model card, training history and evaluation evidence, not raw transaction CSVs. Configure SPENDLENS_MERCHANT_MODEL and SPENDLENS_FORECAST_MODEL only after artifacts exist. No new training/upload performed automatically.
+App files -> existing public GitHub repository -> existing Streamlit Cloud URL. Model files -> zhengzhihust/spendlens-merchant-minilm and zhengzhihust/spendlens-spending-chronos-bolt-tiny. Upload model, tokenizer/forecast contract, model card, training history and evaluation evidence, not raw transaction CSVs. The verified serving manifest pins Hub revisions. No training/upload is performed on application startup.
 
 Acceptance: full demo browse, currency-separated summaries, strict input validation, no future target data in model inputs, honest pending-model UI. ML completion additionally requires both fine-tuning runs, external review, Hub uploads and cloud inference verification. Report/PPT/video remain separate deliverables.
 

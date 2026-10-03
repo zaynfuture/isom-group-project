@@ -1,0 +1,16 @@
+{
+  "merchant": {
+    "repo_id": "zhengzhihust/spendlens-merchant-minilm",
+    "revision": "0e96a3e3e054c472de63a190f744c33f4a8f8d49",
+    "architecture": "minilm",
+    "artifact_dir": "spendlens_merchant_minilm",
+    "hub_reload_verified": true
+  },
+  "forecast": {
+    "repo_id": "zhengzhihust/spendlens-spending-chronos-bolt-tiny",
+    "revision": "c59171a3cfedf98b8b9b736d93f69f6f3dacc90b",
+    "architecture": "chronos-bolt",
+    "artifact_dir": "spendlens_forecast_chronos",
+    "hub_reload_verified": true
+  }
+}
