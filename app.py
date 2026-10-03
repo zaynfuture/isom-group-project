@@ -98,8 +98,9 @@ elif page == "Data Explorer":
     selected_split = st.selectbox("Dataset split", ["All", "Training", "Validation", "Testing"])
     split_map = {"Training": "train", "Validation": "validation", "Testing": "test"}
     displayed = dataset if selected_split == "All" else dataset.loc[dataset["split"] == split_map[selected_split]]
+    scope_label = "complete dataset" if selected_split == "All" else f"{selected_split.lower()} split"
     st.caption(
-        f"Showing all {len(displayed):,} {selected_split.lower()} records. Scroll vertically or horizontally inside the table."
+        f"Showing all {len(displayed):,} records from the {scope_label}. Scroll vertically or horizontally inside the table."
     )
     st.dataframe(displayed, use_container_width=True, hide_index=True, height=560)
     st.download_button(
