@@ -2,6 +2,14 @@
 
 ## FairnessLens: Demographic Imputation for Fairness Evaluation
 
+### Course-aligned workflow
+
+The fictional Meridian Financial Services case gives analysts measurable audit targets. Home presents retrospective acceptance targets; System Pipelines documents Transformer imputation and downstream statistical fairness auditing. These are two application workflows using one ML model, not two Hugging Face task types; the instructor's interpretation of “two pipelines” remains unconfirmed.
+
+Start from Hugging Face `google/bert_uncased_L-2_H-128_A-2` pretrained weights and fine-tune later using the Colab notebook or `scripts/train.py`. The live app continues serving the previously fine-tuned model; no new training is triggered by app startup. The unfine-tuned base model is not a ready-to-use demographic classifier.
+
+Model Evidence shows saved training and validation curves, checkpoint selection, evaluation on all three splits and the test confusion matrix. Training scores are in-sample. Test labels do not select checkpoints, but test results have been inspected across project iterations, so they are not a single-use external validation.
+
 FairnessLens is a Streamlit business application that tests whether demographic attributes imputed from proxy text preserve downstream fairness conclusions. The project fine-tunes a Hugging Face transformer, evaluates both classification quality and fairness-estimation error, and deploys the resulting model in an interactive audit interface.
 
 > **Responsible-use boundary:** the included data are synthetic and use neutral Group A/Group B labels. The application is a classroom validation prototype—not an identity classifier, production compliance tool, or basis for individual decisions.
@@ -113,10 +121,10 @@ python scripts/train.py
 
 # Optional: authenticate first, then upload the saved model and tokenizer.
 hf auth login
-python scripts/train.py --push-to-hub --hub-model-id YOUR_ACCOUNT/fairnesslens-demographic-imputer
+python scripts/train.py --push-to-hub --hub-model-id zhengzhihust/fairnesslens-demographic-imputer
 
 # Run Streamlit directly from that Hub model rather than the bundled local model.
-HF_MODEL_ID=YOUR_ACCOUNT/fairnesslens-demographic-imputer streamlit run app.py
+HF_MODEL_ID=zhengzhihust/fairnesslens-demographic-imputer streamlit run app.py
 ```
 
 Unlike the classroom accuracy-only example, checkpoint selection uses macro-F1 and the saved metadata includes ROC AUC and Brier score. Dynamic padding avoids padding every example to the maximum length, early stopping limits overfitting, and the reload test catches incomplete model/tokenizer exports before deployment.

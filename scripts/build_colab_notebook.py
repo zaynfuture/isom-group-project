@@ -234,12 +234,12 @@ pd.DataFrame({"text": examples, "P(Group B)": probabilities})
 md("""
 ## 7. Optional: upload the saved model to Hugging Face Hub
 
-This mirrors the course upload notebook but avoids hard-coded credentials or repository names. Set `PUSH_TO_HUB=True`, provide your own repository ID, and authenticate interactively. Both model and tokenizer are uploaded.
+After fine-tuning and evaluation, upload the saved model and tokenizer to zhengzhihust/fairnesslens-demographic-imputer. Set `PUSH_TO_HUB=True` when ready and authenticate interactively with that account. No credentials are stored in this notebook.
 """)
 
 code("""
 PUSH_TO_HUB = False
-HF_REPO_ID = ""  # Example: "your-account/fairnesslens-demographic-imputer"
+HF_REPO_ID = "zhengzhihust/fairnesslens-demographic-imputer"
 
 if PUSH_TO_HUB:
     if not HF_REPO_ID or "/" not in HF_REPO_ID:

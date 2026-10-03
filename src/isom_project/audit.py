@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import Callable
 
 import pandas as pd
+import numpy as np
 
 from .metrics import comparison_table
 
@@ -31,11 +32,12 @@ def validate_audit_frame(frame: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
         if column not in result:
             continue
         try:
-            result[column] = pd.to_numeric(result[column], errors="raise").astype(int)
+            result[column] = pd.to_numeric(result[column], errors="raise")
         except (TypeError, ValueError) as exc:
             raise ValueError(f"{column} must contain numeric 0/1 values.") from exc
         if not result[column].isin([0, 1]).all():
             raise ValueError(f"{column} must contain only 0 or 1.")
+        result[column] = result[column].astype(int)
 
     warnings: list[str] = []
     if len(result) < 100:
@@ -53,7 +55,10 @@ def score_audit_frame(
 ) -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
     normalized, warnings = validate_audit_frame(frame)
     result = normalized.copy()
-    result["group_b_probability"] = probability_predictor(result["text"].tolist())
+    probabilities = np.asarray(probability_predictor(result["text"].tolist()), dtype=float)
+    if probabilities.shape != (len(result),) or not np.isfinite(probabilities).all() or ((probabilities < 0) | (probabilities > 1)).any():
+        raise ValueError("Imputation must return one finite probability between 0 and 1 per record.")
+    result["group_b_probability"] = probabilities
     result["imputed_group"] = result["group_b_probability"].map(
         lambda probability: "Group B" if probability >= 0.5 else "Group A"
     )

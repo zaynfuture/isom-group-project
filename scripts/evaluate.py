@@ -18,13 +18,24 @@ from isom_project.modeling import load_pipeline, predict_probabilities
 
 def main():
     frame = pd.read_csv(DATA_DIR / "synthetic_audit_data.csv")
-    test = frame.loc[frame.split == "test"].copy()
     classifier = load_pipeline(MODEL_DIR)
-    test["group_b_probability"] = predict_probabilities(classifier, test.text.tolist())
+    split_results = {}
+    scored_splits = {}
+    for split in ("train", "validation", "test"):
+        part = frame.loc[frame.split == split].copy()
+        part["group_b_probability"] = predict_probabilities(classifier, part.text.tolist())
+        scored_splits[split] = part
+        split_results[split] = {
+            "records": len(part),
+            **classification_metrics(part.group_b, part.group_b_probability),
+        }
+    test = scored_splits["test"]
 
     classification = classification_metrics(test.group_b, test.group_b_probability)
     fairness = comparison_table(test).to_dict(orient="index")
-    output = {"classification": classification, "fairness": fairness}
+    output = {"classification": classification, "fairness": fairness,
+              "split_evaluation": split_results,
+              "evaluation_protocol": "Post-training evaluation of the saved checkpoint. Training scores are in-sample; validation selected the checkpoint; test scores are held-out estimates. Test results have been inspected across project iterations; this is not a one-shot external validation."}
 
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     METRICS_PATH.write_text(json.dumps(output, indent=2, allow_nan=False))
@@ -34,4 +45,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

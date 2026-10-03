@@ -52,6 +52,17 @@ FairnessLens helps Responsible AI teams determine whether probabilistically impu
 - Automated tests cover input validation, metric direction, and report construction.
 - A clean environment can run `streamlit run app.py` using `requirements.txt`.
 
+## Course alignment extension
+
+- Business case: Meridian Financial Services, explicitly fictional; Responsible AI analysts review aggregate credit-decision disparities.
+- Retrospective project targets: Macro-F1 >= .85, ROC AUC >= .90, Brier <= .10, DP-gap absolute error <= .10; never describe these as preregistered criteria.
+- Pipeline 1: Hugging Face pretrained BERT, subsequently fine-tuned offline for demographic probability inference.
+- Pipeline 2: validated probability-weighted fairness aggregation, benchmark comparison and report export. This is statistical processing, not a second ML model.
+- The course slide does not define whether two application workflows suffice or two Hugging Face task types are required; instructor interpretation remains unconfirmed.
+- Model Evidence displays recorded training loss, per-epoch validation scores, checkpoint selection, saved-model split evaluation and test confusion matrix.
+- Existing results are historical evidence. Future fine-tuning remains an explicit Colab step; app startup never trains a model.
+- Test labels are excluded from gradient updates and checkpoint selection, but results were inspected across iterations; no claim of single-use external validation.
+
 ## Out of scope
 
 - Inferring a real person's race, ethnicity, gender, age, or other identity.

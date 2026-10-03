@@ -16,9 +16,10 @@ from isom_project.audit import build_audit_report, score_audit_frame, validate_a
 from isom_project.config import METRICS_PATH, MODEL_DIR
 from isom_project.data import generate_dataset, sample_audit_data
 from isom_project.modeling import load_pipeline, model_is_available, predict_probabilities
+from isom_project.evidence_ui import business_objectives, system_pipelines, training_evidence
 
 MODEL_SOURCE = os.environ.get("HF_MODEL_ID", str(MODEL_DIR))
-PAGES = ["Home", "Data Explorer", "Single Prediction", "Batch Audit", "Model Evidence", "Responsible Use"]
+PAGES = ["Home", "Data Explorer", "System Pipelines", "Single Prediction", "Batch Audit", "Model Evidence", "Responsible Use"]
 
 st.set_page_config(page_title="FairnessLens | Demographic Imputation Audit", page_icon="⚖️", layout="wide")
 
@@ -67,6 +68,7 @@ if page == "Home":
     c1.metric("Fine-tuned model", "2-layer BERT")
     c2.metric("Primary method", "Soft imputation")
     c3.metric("Stored uploads", "None")
+    business_objectives()
     st.markdown("### What this application answers")
     for column, title, body in zip(st.columns(3), ["1 · Estimate", "2 · Compare", "3 · Decide"], [
         "Produce a probability for Group B instead of treating a proxy as a known identity.",
@@ -85,6 +87,9 @@ if page == "Home":
     st.session_state["intended_use_accepted"] = accepted
     if accepted:
         st.success("Use boundary acknowledged. Continue to Data Explorer, Single Prediction, or Batch Audit.")
+
+elif page == "System Pipelines":
+    system_pipelines()
 
 elif page == "Data Explorer":
     header("Data Explorer", "Review the complete synthetic training, validation, and testing dataset.")
@@ -198,6 +203,10 @@ elif page == "Model Evidence":
         st.warning("Evaluation evidence is unavailable. Run `python scripts/evaluate.py` after training.")
     else:
         metrics = json.loads(METRICS_PATH.read_text())
+        st.caption("Evidence below belongs to the bundled fine-tuned checkpoint and synthetic dataset.")
+        if using_hub:
+            st.info("A Hub model override is active for inference. The bundled evidence does not evaluate that override.")
+        training_evidence(metrics)
         classification = metrics["classification"]
         columns = st.columns(4)
         for column, key, label, help_text in zip(columns, ["macro_f1", "roc_auc", "brier_score", "balanced_accuracy"], ["Macro-F1", "ROC AUC", "Brier score", "Balanced accuracy"], ["Class-balanced performance.", "Ranking discrimination.", "Probability error; lower is better.", "Average recall across groups."]):

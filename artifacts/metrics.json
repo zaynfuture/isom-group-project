@@ -43,5 +43,68 @@
       "equal_opportunity_gap": 0.09081056787076336,
       "false_positive_rate_gap": 0.06360658392477925
     }
-  }
+  },
+  "split_evaluation": {
+    "train": {
+      "records": 4200,
+      "accuracy": 0.895952380952381,
+      "balanced_accuracy": 0.8955937724216314,
+      "macro_precision": 0.900679539467655,
+      "macro_recall": 0.8955937724216314,
+      "macro_f1": 0.8955794444774106,
+      "roc_auc": 0.9784649159010242,
+      "brier_score": 0.07068974585359318,
+      "confusion_matrix": [
+        [
+          2007,
+          107
+        ],
+        [
+          330,
+          1756
+        ]
+      ]
+    },
+    "validation": {
+      "records": 900,
+      "accuracy": 0.9077777777777778,
+      "balanced_accuracy": 0.906282272370157,
+      "macro_precision": 0.9144220882643495,
+      "macro_recall": 0.906282272370157,
+      "macro_f1": 0.9071328671328671,
+      "roc_auc": 0.9852455047213396,
+      "brier_score": 0.06536782850066605,
+      "confusion_matrix": [
+        [
+          446,
+          15
+        ],
+        [
+          68,
+          371
+        ]
+      ]
+    },
+    "test": {
+      "records": 900,
+      "accuracy": 0.8922222222222222,
+      "balanced_accuracy": 0.8894448869342383,
+      "macro_precision": 0.8995553841156407,
+      "macro_recall": 0.8894448869342383,
+      "macro_f1": 0.8910589741573918,
+      "roc_auc": 0.9766967284888122,
+      "brier_score": 0.07258751943295708,
+      "confusion_matrix": [
+        [
+          448,
+          21
+        ],
+        [
+          76,
+          355
+        ]
+      ]
+    }
+  },
+  "evaluation_protocol": "Post-training evaluation of the saved checkpoint. Training scores are in-sample; validation selected the checkpoint; test scores are held-out estimates. Test results have been inspected across project iterations; this is not a one-shot external validation."
 }
