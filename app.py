@@ -14,11 +14,11 @@ import streamlit as st
 
 from isom_project.audit import build_audit_report, score_audit_frame, validate_audit_frame
 from isom_project.config import METRICS_PATH, MODEL_DIR
-from isom_project.data import sample_audit_data
+from isom_project.data import generate_dataset, sample_audit_data
 from isom_project.modeling import load_pipeline, model_is_available, predict_probabilities
 
 MODEL_SOURCE = os.environ.get("HF_MODEL_ID", str(MODEL_DIR))
-PAGES = ["Home", "Single Prediction", "Batch Audit", "Model Evidence", "Responsible Use"]
+PAGES = ["Home", "Data Explorer", "Single Prediction", "Batch Audit", "Model Evidence", "Responsible Use"]
 
 st.set_page_config(page_title="FairnessLens | Demographic Imputation Audit", page_icon="⚖️", layout="wide")
 
@@ -30,6 +30,12 @@ def get_classifier():
 
 def predict(texts: list[str]):
     return predict_probabilities(get_classifier(), texts)
+
+
+@st.cache_data(show_spinner=False)
+def get_complete_dataset() -> pd.DataFrame:
+    """Build the deterministic train/validation/test dataset for exploration."""
+    return generate_dataset(6000)
 
 
 def header(title: str, description: str):
@@ -78,7 +84,31 @@ if page == "Home":
     )
     st.session_state["intended_use_accepted"] = accepted
     if accepted:
-        st.success("Use boundary acknowledged. Continue to Single Prediction or Batch Audit.")
+        st.success("Use boundary acknowledged. Continue to Data Explorer, Single Prediction, or Batch Audit.")
+
+elif page == "Data Explorer":
+    header("Data Explorer", "Review the complete synthetic training, validation, and testing dataset.")
+    dataset = get_complete_dataset()
+    split_counts = dataset["split"].value_counts()
+    columns = st.columns(4)
+    columns[0].metric("All records", f"{len(dataset):,}")
+    columns[1].metric("Training", f"{split_counts.get('train', 0):,}")
+    columns[2].metric("Validation", f"{split_counts.get('validation', 0):,}")
+    columns[3].metric("Testing", f"{split_counts.get('test', 0):,}")
+    selected_split = st.selectbox("Dataset split", ["All", "Training", "Validation", "Testing"])
+    split_map = {"Training": "train", "Validation": "validation", "Testing": "test"}
+    displayed = dataset if selected_split == "All" else dataset.loc[dataset["split"] == split_map[selected_split]]
+    st.caption(
+        f"Showing all {len(displayed):,} {selected_split.lower()} records. Scroll vertically or horizontally inside the table."
+    )
+    st.dataframe(displayed, use_container_width=True, hide_index=True, height=560)
+    st.download_button(
+        f"Download {selected_split.lower()} data (CSV)",
+        displayed.to_csv(index=False).encode("utf-8"),
+        f"fairnesslens_{selected_split.lower()}_data.csv",
+        "text/csv",
+    )
+    st.info("The testing split is held out from model training and checkpoint selection.")
 
 elif page == "Single Prediction":
     header("Single Prediction", "Inspect the model interface with one synthetic record before a batch audit.")
@@ -122,7 +152,8 @@ elif page == "Batch Audit":
         a.metric("Records", f"{len(frame):,}")
         b.metric("Columns", len(frame.columns))
         c.metric("Benchmark labels", "Available" if "group_b" in frame else "Not supplied")
-        st.dataframe(frame.head(10), use_container_width=True, hide_index=True)
+        st.caption(f"Showing all {len(frame):,} records. Scroll inside the table to inspect the complete batch.")
+        st.dataframe(frame, use_container_width=True, hide_index=True, height=480)
         try:
             _, preview_warnings = validate_audit_frame(frame)
             valid = True

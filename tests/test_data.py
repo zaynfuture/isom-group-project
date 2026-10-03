@@ -19,3 +19,8 @@ def test_dataset_is_reproducible_and_complete():
 
 def test_default_audit_sample_has_at_least_500_records():
     assert len(sample_audit_data()) >= 500
+
+
+def test_complete_dataset_has_fixed_modeling_splits():
+    counts = generate_dataset()["split"].value_counts().to_dict()
+    assert counts == {"train": 4200, "validation": 900, "test": 900}

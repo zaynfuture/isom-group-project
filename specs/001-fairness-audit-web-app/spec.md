@@ -33,6 +33,7 @@ FairnessLens helps Responsible AI teams determine whether probabilistically impu
 - FR-009: Model evaluation must distinguish demographic classification quality from downstream fairness-estimation validity.
 - FR-010: The app must load a bundled model or a Hugging Face model selected through `HF_MODEL_ID`.
 - FR-011: The application must run on Streamlit Community Cloud without local filesystem assumptions beyond repository artifacts.
+- FR-012: Users must be able to inspect all 6,000 synthetic records and filter the scrollable table by training, validation, or testing split.
 
 ## Non-functional requirements
 
