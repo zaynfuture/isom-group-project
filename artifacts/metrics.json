@@ -1,20 +1,20 @@
 {
   "classification": {
-    "accuracy": 0.8588888888888889,
-    "balanced_accuracy": 0.8607517599275747,
-    "macro_precision": 0.8613148089424449,
-    "macro_recall": 0.8607517599275747,
-    "macro_f1": 0.8588803520212951,
-    "roc_auc": 0.9224494036281964,
-    "brier_score": 0.17988969870161842,
+    "accuracy": 0.8922222222222222,
+    "balanced_accuracy": 0.8894448869342383,
+    "macro_precision": 0.8995553841156407,
+    "macro_recall": 0.8894448869342383,
+    "macro_f1": 0.8910589741573918,
+    "roc_auc": 0.9766967284888122,
+    "brier_score": 0.07258751943295708,
     "confusion_matrix": [
       [
-        383,
-        86
+        448,
+        21
       ],
       [
-        41,
-        390
+        76,
+        355
       ]
     ]
   },
@@ -28,20 +28,20 @@
       "false_positive_rate_gap": -0.1350647701295402
     },
     "Imputed (soft)": {
-      "group_a_selection_rate": 0.6592854743868886,
-      "group_b_selection_rate": 0.6424982302484769,
-      "demographic_parity_gap": -0.016787244138411705,
-      "disparate_impact_ratio": 0.974537215226798,
-      "equal_opportunity_gap": -0.017893748306524015,
-      "false_positive_rate_gap": -0.00861520658177034
+      "group_a_selection_rate": 0.6825605445177123,
+      "group_b_selection_rate": 0.6147511488766434,
+      "demographic_parity_gap": -0.06780939564106891,
+      "disparate_impact_ratio": 0.9006543870932621,
+      "equal_opportunity_gap": -0.05489299614241838,
+      "false_positive_rate_gap": -0.07145818620476097
     },
     "Absolute error": {
-      "group_a_selection_rate": 0.06352902454701337,
-      "group_b_selection_rate": 0.06941238338072742,
-      "demographic_parity_gap": 0.13294140792774078,
-      "disparate_impact_ratio": 0.18168393445696185,
-      "equal_opportunity_gap": 0.12780981570665773,
-      "false_positive_rate_gap": 0.12644956354776987
+      "group_a_selection_rate": 0.04025395441618962,
+      "group_b_selection_rate": 0.041665302008893956,
+      "demographic_parity_gap": 0.08191925642508358,
+      "disparate_impact_ratio": 0.10780110632342588,
+      "equal_opportunity_gap": 0.09081056787076336,
+      "false_positive_rate_gap": 0.06360658392477925
     }
   }
 }

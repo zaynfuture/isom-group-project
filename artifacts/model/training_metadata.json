@@ -1,19 +1,24 @@
 {
   "base_model": "google/bert_uncased_L-2_H-128_A-2",
   "tokenizer": "bert-base-uncased",
-  "epochs": 2.0,
+  "epochs": 4.0,
   "batch_size": 32,
   "learning_rate": 3e-05,
+  "max_length": 96,
+  "early_stopping_patience": 2,
   "seed": 5240,
   "test_metrics": {
-    "test_loss": 0.5501646399497986,
-    "test_accuracy": 0.8588888888888889,
-    "test_macro_precision": 0.8613148089424449,
-    "test_macro_recall": 0.8607517599275747,
-    "test_macro_f1": 0.8588803520212951,
-    "test_runtime": 0.1651,
-    "test_samples_per_second": 5449.617,
-    "test_steps_per_second": 175.599,
-    "epoch": 2.0
-  }
+    "test_loss": 0.2713862657546997,
+    "test_accuracy": 0.8922222222222222,
+    "test_macro_precision": 0.8995553841156407,
+    "test_macro_recall": 0.8894448869342383,
+    "test_macro_f1": 0.8910589741573918,
+    "test_roc_auc": 0.9766967284888122,
+    "test_brier_score": 0.0725875198841095,
+    "test_runtime": 0.1475,
+    "test_samples_per_second": 6100.786,
+    "test_steps_per_second": 196.581,
+    "epoch": 4.0
+  },
+  "reload_max_absolute_difference": 0.0
 }

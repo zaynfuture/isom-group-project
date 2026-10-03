@@ -51,7 +51,7 @@ Generate data, fine-tune, evaluate, and launch:
 
 ```bash
 python scripts/generate_data.py
-python scripts/train.py --model-name google/bert_uncased_L-2_H-128_A-2 --epochs 2
+python scripts/train.py --model-name google/bert_uncased_L-2_H-128_A-2 --epochs 4
 python scripts/evaluate.py
 streamlit run app.py
 ```
@@ -75,7 +75,7 @@ The equivalent manual Colab commands are:
 %cd /content/isom-group-project
 !pip install -q -r requirements-colab.txt
 !python scripts/generate_data.py
-!python scripts/train.py --model-name google/bert_uncased_L-2_H-128_A-2 --epochs 2 --batch-size 32
+!python scripts/train.py --model-name google/bert_uncased_L-2_H-128_A-2 --epochs 4 --batch-size 32
 !python scripts/evaluate.py
 ```
 
@@ -102,31 +102,73 @@ Download the `artifacts/model/` directory and copy it to the same location in th
 
 The two levels are deliberately separate: a classifier can score well while still distorting the fairness audit.
 
+## Course-aligned save, reload, and Hugging Face Hub flow
+
+The training script follows the supplied course notebooks while strengthening their evaluation and reliability checks:
+
+```bash
+# Fine-tune, select the best checkpoint by validation macro-F1, save model + tokenizer,
+# verify that reloaded logits match, and create artifacts/fairnesslens_model.zip.
+python scripts/train.py
+
+# Optional: authenticate first, then upload the saved model and tokenizer.
+hf auth login
+python scripts/train.py --push-to-hub --hub-model-id YOUR_ACCOUNT/fairnesslens-demographic-imputer
+
+# Run Streamlit directly from that Hub model rather than the bundled local model.
+HF_MODEL_ID=YOUR_ACCOUNT/fairnesslens-demographic-imputer streamlit run app.py
+```
+
+Unlike the classroom accuracy-only example, checkpoint selection uses macro-F1 and the saved metadata includes ROC AUC and Brier score. Dynamic padding avoids padding every example to the maximum length, early stopping limits overfitting, and the reload test catches incomplete model/tokenizer exports before deployment.
+
 ### Verified full-run results
 
-The included final model was fine-tuned for two epochs on 4,200 synthetic training records and evaluated on 900 held-out records:
+The included final model was fine-tuned for four epochs on 4,200 synthetic training records and evaluated on 900 held-out records:
 
 | Metric | Result |
 |---|---:|
-| Accuracy | 0.859 |
-| Macro-F1 | 0.859 |
-| ROC AUC | 0.922 |
-| Brier score | 0.180 |
+| Accuracy | 0.892 |
+| Macro-F1 | 0.891 |
+| ROC AUC | 0.977 |
+| Brier score | 0.073 |
 | Observed demographic-parity gap | -0.150 |
-| Soft-imputed demographic-parity gap | -0.017 |
-| Absolute DP-gap error | 0.133 |
+| Soft-imputed demographic-parity gap | -0.068 |
+| Absolute DP-gap error | 0.082 |
 
 The result is intentionally interpreted at both levels: the classifier discriminates the synthetic groups reasonably well, yet probability weighting substantially attenuates the downstream disparity. This is evidence for the project's central claim—not a production-valid demographic model.
 
 ## Streamlit pages
 
-1. **Overview:** business goal and project boundary.
-2. **Single prediction:** inspect a probability from the fine-tuned model.
-3. **Batch fairness audit:** upload CSV, run batched inference, compare fairness metrics, and download scored records.
-4. **Model evaluation:** view held-out model and downstream fairness results.
-5. **Responsible use:** intended use, limitations, and governance controls.
+1. **Home:** product purpose, workflow, and required intended-use acknowledgement.
+2. **Single Prediction:** inspect a probability from the fine-tuned model.
+3. **Batch Audit:** validate or upload CSV data, compare fairness metrics, and export evidence.
+4. **Model Evidence:** view held-out classification and downstream audit-validity results.
+5. **Responsible Use:** intended use, prohibited use, limitations, and governance controls.
 
 Uploaded CSV files require `text`, `qualified`, and `decision`. Include `group_b` when ground truth is available so the app can calculate fairness-estimation error.
+
+## Spec-driven development
+
+The product contract, implementation decisions, and delivery checklist live in
+[`specs/001-fairness-audit-web-app`](specs/001-fairness-audit-web-app). The Streamlit
+entry point is intentionally presentation-focused; reusable validation, scoring,
+and report construction live in `src/isom_project/audit.py` and are covered by tests.
+
+## Deploy to Streamlit Community Cloud
+
+1. Push this repository to GitHub. Keep `app.py`, `requirements.txt`, `.python-version`,
+   `.streamlit/config.toml`, and `artifacts/model/` in the repository.
+2. In Streamlit Community Cloud, select **Create app**, choose the repository and
+   branch, and set the main file to `app.py`.
+3. Use Python 3.11. No secret is required when using the bundled model.
+4. Optional: add `HF_MODEL_ID = "account/model-name"` in the app's Secrets settings
+   to load a public Hugging Face model instead. Never commit access tokens.
+5. Deploy, then verify Home, Single Prediction, Batch Audit, both downloads, and
+   Model Evidence using the built-in sample.
+
+The app processes uploads in memory and does not write them to disk. Streamlit
+Community Cloud infrastructure and logs remain governed by Streamlit's service terms;
+do not upload real sensitive or regulated data to this classroom deployment.
 
 ## Tests
 

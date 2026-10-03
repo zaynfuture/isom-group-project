@@ -1,13 +1,10 @@
 {
-  "add_cross_attention": false,
   "architectures": [
     "BertForSequenceClassification"
   ],
   "attention_probs_dropout_prob": 0.1,
-  "bos_token_id": null,
   "classifier_dropout": null,
   "dtype": "float32",
-  "eos_token_id": null,
   "hidden_act": "gelu",
   "hidden_dropout_prob": 0.1,
   "hidden_size": 128,
@@ -17,7 +14,6 @@
   },
   "initializer_range": 0.02,
   "intermediate_size": 512,
-  "is_decoder": false,
   "label2id": {
     "GROUP_A": 0,
     "GROUP_B": 1
@@ -28,10 +24,10 @@
   "num_attention_heads": 2,
   "num_hidden_layers": 2,
   "pad_token_id": 0,
+  "position_embedding_type": "absolute",
   "problem_type": "single_label_classification",
-  "tie_word_embeddings": true,
-  "transformers_version": "5.14.1",
+  "transformers_version": "4.57.6",
   "type_vocab_size": 2,
-  "use_cache": false,
+  "use_cache": true,
   "vocab_size": 30522
 }

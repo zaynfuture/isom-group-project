@@ -156,7 +156,7 @@ The default `google/bert_uncased_L-2_H-128_A-2` checkpoint is a compact, pretrai
 
 code("""
 MODEL_NAME = "google/bert_uncased_L-2_H-128_A-2"
-EPOCHS = 2
+EPOCHS = 4
 BATCH_SIZE = 32
 
 command = [
@@ -232,7 +232,33 @@ pd.DataFrame({"text": examples, "P(Group B)": probabilities})
 """)
 
 md("""
-## 7. Package the trained model and results
+## 7. Optional: upload the saved model to Hugging Face Hub
+
+This mirrors the course upload notebook but avoids hard-coded credentials or repository names. Set `PUSH_TO_HUB=True`, provide your own repository ID, and authenticate interactively. Both model and tokenizer are uploaded.
+""")
+
+code("""
+PUSH_TO_HUB = False
+HF_REPO_ID = ""  # Example: "your-account/fairnesslens-demographic-imputer"
+
+if PUSH_TO_HUB:
+    if not HF_REPO_ID or "/" not in HF_REPO_ID:
+        raise ValueError("Set HF_REPO_ID to YOUR_ACCOUNT/MODEL_NAME")
+    from huggingface_hub import notebook_login
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+    notebook_login()
+    saved_model = AutoModelForSequenceClassification.from_pretrained("artifacts/model")
+    saved_tokenizer = AutoTokenizer.from_pretrained("artifacts/model")
+    saved_model.push_to_hub(HF_REPO_ID)
+    saved_tokenizer.push_to_hub(HF_REPO_ID)
+    print(f"Uploaded to https://huggingface.co/{HF_REPO_ID}")
+else:
+    print("Hub upload skipped. Set PUSH_TO_HUB=True when ready.")
+""")
+
+md("""
+## 8. Package the trained model and results
 
 Download the ZIP, extract it into the local project's `artifacts/` directory, and run `streamlit run app.py`. The Streamlit app then uses this exact fine-tuned model for single-record and batch inference.
 """)
@@ -260,4 +286,3 @@ Do not select the model solely because of macro-F1. Compare its inferred-group f
 
 nbf.write(nb, OUT)
 print(f"Wrote {OUT}")
-

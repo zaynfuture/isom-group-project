@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import numpy as np
+
+os.environ.setdefault("USE_TF", "0")
 
 
 def model_is_available(model_dir: Path) -> bool:
@@ -14,17 +17,20 @@ def model_is_available(model_dir: Path) -> bool:
     )
 
 
-def load_pipeline(model_dir: Path):
-    if not model_is_available(model_dir):
+def load_pipeline(model_source: str | Path):
+    model_source = str(model_source)
+    local_path = Path(model_source)
+    is_local = local_path.exists() or model_source.startswith(("/", "."))
+    if is_local and not model_is_available(local_path):
         raise FileNotFoundError(
-            f"No fine-tuned model found at {model_dir}. Run: python scripts/train.py"
+            f"No fine-tuned model found at {local_path}. Run: python scripts/train.py"
         )
     from transformers import pipeline
 
     return pipeline(
         "text-classification",
-        model=str(model_dir),
-        tokenizer=str(model_dir),
+        model=model_source,
+        tokenizer=model_source,
         top_k=None,
         device=-1,
     )
@@ -42,4 +48,3 @@ def predict_probabilities(classifier, texts: list[str], batch_size: int = 32) ->
             raise ValueError(f"Model output has no Group B label: {mapping}")
         probabilities.append(probability)
     return np.asarray(probabilities)
-
