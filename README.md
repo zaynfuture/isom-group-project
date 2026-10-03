@@ -2,30 +2,36 @@
 
 ## Current project: SpendLens
 
+### Application and model architecture
+
+`app/` owns the English Streamlit interface and currency/disparity services. `model/` owns transaction contracts, inference, training, Hugging Face publication and evaluation artifacts. Training dependencies are separate from app deployment dependencies; the root `app.py` remains the Streamlit Cloud launcher. See [architecture and currency specification](specs/005-architecture-currency.md).
+
+Reporting defaults to **USD**. Choose from 50 mainstream currencies or enable the expanded provider catalog. `CurrencyConverter` uses historical Frankfurter reference rates to normalize mixed-currency transactions before aggregation; original amounts and rate audit fields are retained. Missing/stale rates stop conversion instead of silently mixing currencies. Forecast inputs and spending-band thresholds stay in USD, with optional converted display amounts.
+
 Live application: https://spendlens-card-analytics.streamlit.app/
 
 The main Streamlit entry point now serves card spending analytics. Run `streamlit run app.py`. Previous FairnessLens code remains in `legacy_fairness_app.py`; its results must not be presented as SpendLens evidence.
 
 - Browse 7,680 synthetic transactions for 120 cards across eight months, or validate an anonymized CSV.
-- View currency-separated purchases, refunds, net spending and category trends.
+- View currency-normalized purchases, refunds, net spending and category trends.
 - Pipeline 1: pretrained Microsoft MiniLM fine-tuned for merchant category classification.
 - Pipeline 2: pretrained Amazon Chronos-Bolt Tiny fine-tuned on numeric monthly purchases, producing next-month p10/p50/p90 amounts and derived spending bands.
 - `SpendLens_Colab.ipynb` supplies reproducible training, evaluation, save/reload checks and explicit upload steps. Model Evidence shows committed run artifacts; never treat synthetic results as production validation.
 - MCC reference: [user-supplied Citi manual](https://www.citibank.com/tts/solutions/commercial-cards/assets/docs/govt/Merchant-Category-Codes.pdf). The reviewed mapping contains five codes; raw MCC, normalized description and mapping version are retained. Other codes are explicitly unmapped.
 - FairnessLens compares gender, age-band and ethnicity spending disparities using authorized labels, card-level permutation tests, Holm correction and bootstrap intervals. Statistical differences do not establish discrimination; identities are not inferred from spending.
 
-Model repositories: [merchant MiniLM](https://huggingface.co/zhengzhihust/spendlens-merchant-minilm) and [spending Chronos-Bolt](https://huggingface.co/zhengzhihust/spendlens-spending-chronos-bolt-tiny). The application uses `artifacts/spendlens_deployment.json` to pin verified revisions and matching evaluation directories. Do not replace a verified revision with a moving branch or commit credentials. Existing environment overrides take precedence and must match the task architecture.
+Model repositories: [merchant MiniLM](https://huggingface.co/zhengzhihust/spendlens-merchant-minilm) and [spending Chronos-Bolt](https://huggingface.co/zhengzhihust/spendlens-spending-chronos-bolt-tiny). The application uses `model/artifacts/spendlens_deployment.json` to pin verified revisions and matching evaluation directories. Do not replace a verified revision with a moving branch or commit credentials. Existing environment overrides take precedence and must match the task architecture.
 
 Reproduce in Colab or a compatible Python environment:
 
 ```sh
-pip install -r requirements.txt
-python scripts/train_spendlens.py --task merchant --model-name microsoft/MiniLM-L12-H384-uncased --epochs 3 --output-dir artifacts/spendlens_merchant_minilm
-python scripts/train_spendlens_chronos.py --epochs 5 --output-dir artifacts/spendlens_forecast_chronos
+pip install -r requirements-colab.txt
+python -m model.training.merchant --task merchant --model-name microsoft/MiniLM-L12-H384-uncased --epochs 3 --output-dir model/artifacts/spendlens_merchant_minilm
+python -m model.training.chronos --epochs 5 --output-dir model/artifacts/spendlens_forecast_chronos
 # Authenticate locally using the Hugging Face CLI or notebook_login (never put tokens in code).
-python scripts/upload_spendlens.py --task merchant --folder artifacts/spendlens_merchant_minilm --repo-id zhengzhihust/spendlens-merchant-minilm
-python scripts/upload_spendlens.py --task forecast --folder artifacts/spendlens_forecast_chronos --repo-id zhengzhihust/spendlens-spending-chronos-bolt-tiny
-python scripts/verify_spendlens_hub.py
+python -m model.registry.upload --task merchant --folder model/artifacts/spendlens_merchant_minilm --repo-id zhengzhihust/spendlens-merchant-minilm
+python -m model.registry.upload --task forecast --folder model/artifacts/spendlens_forecast_chronos --repo-id zhengzhihust/spendlens-spending-chronos-bolt-tiny
+python -m model.registry.verify
 ```
 
 Use fresh output directories for reruns: training scripts protect existing model weights. Chronos is trained directly with PyTorch using the official library, not a text tokenizer. Source code and evaluation JSON go to GitHub; weights go only to Hugging Face.

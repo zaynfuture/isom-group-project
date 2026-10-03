@@ -1,0 +1,4 @@
+-r requirements-inference.txt
+datasets>=3.0,<5
+accelerate>=1.1,<2
+scikit-learn>=1.4,<2

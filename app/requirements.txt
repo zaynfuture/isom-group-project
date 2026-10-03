@@ -1,0 +1,5 @@
+-r ../model/requirements-inference.txt
+streamlit>=1.39,<2
+CurrencyConverter==0.18.22
+Babel>=2.14,<3
+requests>=2.31,<3

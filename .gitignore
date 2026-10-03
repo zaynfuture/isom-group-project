@@ -11,3 +11,9 @@ artifacts/spendlens_*/*.safetensors
 artifacts/spendlens_*/*.bin
 artifacts/spendlens_*/tokenizer*.json
 artifacts/spendlens_*/vocab.txt
+model/artifacts/**/checkpoints/
+model/artifacts/**/*.safetensors
+model/artifacts/**/*.bin
+model/artifacts/**/tokenizer*.json
+model/artifacts/**/vocab.txt
+model/artifacts/**/upload_receipt.json
