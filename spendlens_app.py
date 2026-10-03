@@ -11,8 +11,8 @@ from isom_project.mcc_reference import SOURCE, VERSION, REFERENCE
 
 st.set_page_config(page_title="SpendLens | Card Spending Analytics", page_icon="💳", layout="wide")
 st.title("SpendLens")
-st.caption("Card transaction analytics · Merchant classification · Future spending bands")
-page = st.sidebar.radio("Workspace", ["Business Overview", "Transaction Explorer", "Spending Analytics", "Model Pipelines", "Cohort Analysis", "Model Evidence"])
+st.caption("Card transaction analytics · Merchant classification · Future spending bands · FairnessLens")
+page = st.sidebar.radio("Workspace", ["Business Overview", "Transaction Explorer", "Spending Analytics", "Model Pipelines", "Cohort Analysis", "FairnessLens", "Model Evidence"])
 source = st.sidebar.radio("Data source", ["Synthetic demo", "Upload transactions"])
 @st.cache_data
 def demo():
@@ -54,6 +54,7 @@ st.sidebar.caption("Uploads stay in session memory. Use anonymized card tokens, 
 if page == "Business Overview":
     st.subheader("Enterprise Spending Behavior Analytics")
     st.write("SpendLens helps enterprises analyze card spending behavior, understand category and portfolio trends, improve merchant-category coverage, and forecast future spending bands. Business analysts can compare aggregate behavior across authorized customer groups to support planning and portfolio management.")
+    st.write("FairnessLens extends this workflow with gender, age-band and ethnicity spending-disparity screening using authorized labels, card-level comparisons and uncertainty estimates. Differences prompt contextual review; they do not alone demonstrate unfair treatment.")
     st.dataframe(pd.DataFrame([
         {"Objective": "Merchant category prediction", "Acceptance target": "Test Macro-F1 ≥ 0.80; compare majority baseline", "State": task_status("merchant")},
         {"Objective": "Next-month spending band", "Acceptance target": "Macro-F1 exceeds previous-2-month baseline", "State": task_status("forecast")},
@@ -128,6 +129,10 @@ elif page == "Cohort Analysis":
             st.download_button("Download aggregate cohorts", summary.to_csv(index=False), "cohorts.csv", "text/csv")
         except Exception as exc:
             st.error(str(exc))
+
+elif page == "FairnessLens":
+    from isom_project.fairness_page import render
+    render(data, source == "Synthetic demo")
 
 else:
     st.write("Task-specific evidence is generated only after fine-tuning. Previous FairnessLens demographic results do not evaluate these models.")
