@@ -44,7 +44,7 @@ FairnessLens helps Responsible AI teams determine whether probabilistically impu
 
 ## Acceptance criteria
 
-- A valid sample completes the end-to-end journey and produces both downloads.
+- The built-in sample contains at least 500 records and completes the end-to-end journey with both downloads.
 - Invalid or missing columns prevent inference and identify the exact problem.
 - With benchmark labels, the app displays fairness-estimation error.
 - Without benchmark labels, the app labels the output as screening-only.

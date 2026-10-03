@@ -98,6 +98,5 @@ def write_dataset(output_dir: Path = DATA_DIR, n: int = 6000, seed: int = SEED) 
     return path
 
 
-def sample_audit_data(n: int = 250, seed: int = SEED + 7) -> pd.DataFrame:
+def sample_audit_data(n: int = 600, seed: int = SEED + 7) -> pd.DataFrame:
     return generate_dataset(max(n, 100), seed=seed).head(n).copy()
-

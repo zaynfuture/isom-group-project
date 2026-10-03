@@ -4,7 +4,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from isom_project.data import generate_dataset
+from isom_project.data import generate_dataset, sample_audit_data
 
 
 def test_dataset_is_reproducible_and_complete():
@@ -16,3 +16,6 @@ def test_dataset_is_reproducible_and_complete():
     assert first.group_b.nunique() == 2
     assert first.text.str.len().min() > 30
 
+
+def test_default_audit_sample_has_at_least_500_records():
+    assert len(sample_audit_data()) >= 500

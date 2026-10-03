@@ -110,7 +110,7 @@ elif page == "Batch Audit":
         st.markdown("- `text`: non-empty model input\n- `qualified`: benchmark outcome, 0/1\n- `decision`: system decision, 0/1\n- `group_b`: optional verified benchmark group, 0/1")
     source = st.radio("Data source", ["Built-in synthetic sample", "Upload CSV"], horizontal=True)
     uploaded = st.file_uploader("Upload CSV", type=["csv"], disabled=source != "Upload CSV")
-    frame = sample_audit_data(250) if source == "Built-in synthetic sample" else None
+    frame = sample_audit_data(600) if source == "Built-in synthetic sample" else None
     if source == "Upload CSV" and uploaded is not None:
         try:
             frame = pd.read_csv(uploaded)
@@ -186,4 +186,3 @@ else:
         st.markdown("### Prohibited use\n- Assigning identity to a person\n- Eligibility, hiring, lending, pricing, or enforcement\n- Targeting, surveillance, or sensitive profiling\n- Treating a proxy as self-described data\n- Claiming legal compliance")
         st.markdown("### Demonstration boundary")
         st.write("The bundled dataset is synthetic and uses neutral Group A/Group B labels. Results do not validate any real demographic group.")
-    st.error("This classroom prototype is not approved for production decisions or legal compliance determinations.")
