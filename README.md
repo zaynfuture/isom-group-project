@@ -1,5 +1,23 @@
 # isom-group-project
 
+## Current project: SpendLens
+
+The main Streamlit entry point now serves card spending analytics. Run `streamlit run app.py`. Previous FairnessLens code remains in `legacy_fairness_app.py`; its results must not be presented as SpendLens evidence.
+
+- Browse 7,680 synthetic transactions for 120 cards across eight months, or validate an anonymized CSV.
+- View currency-separated purchases, refunds, net spending and category trends.
+- Pipeline 1: pretrained DistilBERT fine-tuned for merchant category classification.
+- Pipeline 2: a separate pretrained DistilBERT checkpoint fine-tuned for next-month spending bands.
+- Both new models await fine-tuning. `SpendLens_Colab.ipynb` supplies training, evaluation, save/reload checks and upload steps. No new model metrics are claimed yet.
+- MCC reference: [user-supplied Citi manual](https://www.citibank.com/tts/solutions/commercial-cards/assets/docs/govt/Merchant-Category-Codes.pdf). The reviewed mapping contains five codes; raw MCC, normalized description and mapping version are retained. Other codes are explicitly unmapped.
+- Optional authorized demographic labels support aggregate comparisons; identities are not inferred from spending.
+
+After training, authenticate as `zhengzhihust` and run `python scripts/upload_spendlens.py --task merchant` and `--task forecast`. These upload artifacts to `zhengzhihust/spendlens-merchant-classifier` and `zhengzhihust/spendlens-spending-forecast`. Configure root-level Streamlit secrets `SPENDLENS_MERCHANT_MODEL` and `SPENDLENS_FORECAST_MODEL` with those IDs after successful uploads. Never commit credentials.
+
+Current scope: working analytics and deployable training/inference code. Remaining course work: execute both fine-tuning runs, review held-out/baseline results, upload models, verify cloud inference, and prepare report/PPT/video. Real financial-data use additionally requires controlled hosting, authentication and approved data access; the public app is a synthetic demonstration.
+
+Specification: `specs/002-spendlens.md`. Historical FairnessLens documentation follows for traceability.
+
 ## FairnessLens: Demographic Imputation for Fairness Evaluation
 
 ### Course-aligned workflow
