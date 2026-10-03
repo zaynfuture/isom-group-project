@@ -19,6 +19,8 @@ Merchant: disjoint card splits, 70/15/15, majority baseline, accuracy, Macro-F1,
 Forecast: chronological target-month splits, last evaluable month test, preceding month validation. Earlier months train. Last observed month excluded as a target; incomplete monthly coverage must be resolved upstream. Baseline uses previous two-month average. Fixed demo USD bands: <200, <400, >=400. Compare Macro-F1; tune thresholds with business owners before real adoption.
 
 ## Deployment and acceptance
+
+Public application URL: https://spendlens-card-analytics.streamlit.app/
 App files -> existing public GitHub repository -> existing Streamlit Cloud URL. Model files -> zhengzhihust/spendlens-merchant-classifier and zhengzhihust/spendlens-spending-forecast. Upload model, tokenizer, model card, training history and evaluation evidence, not raw transaction CSVs. Configure SPENDLENS_MERCHANT_MODEL and SPENDLENS_FORECAST_MODEL only after artifacts exist. No new training/upload performed automatically.
 
 Acceptance: full demo browse, currency-separated summaries, strict input validation, no future target data in model inputs, honest pending-model UI. ML completion additionally requires both fine-tuning runs, external review, Hub uploads and cloud inference verification. Report/PPT/video remain separate deliverables.

@@ -2,6 +2,8 @@
 
 ## Current project: SpendLens
 
+Live application: https://spendlens-card-analytics.streamlit.app/
+
 The main Streamlit entry point now serves card spending analytics. Run `streamlit run app.py`. Previous FairnessLens code remains in `legacy_fairness_app.py`; its results must not be presented as SpendLens evidence.
 
 - Browse 7,680 synthetic transactions for 120 cards across eight months, or validate an anonymized CSV.
