@@ -6,3 +6,8 @@ __pycache__/
 artifacts/trainer/
 artifacts/evaluation_predictions.csv
 data/generated/
+artifacts/spendlens_*/checkpoints/
+artifacts/spendlens_*/*.safetensors
+artifacts/spendlens_*/*.bin
+artifacts/spendlens_*/tokenizer*.json
+artifacts/spendlens_*/vocab.txt

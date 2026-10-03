@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 import pandas as pd
 import streamlit as st
 from isom_project.spending import demo_transactions, validate_transactions, monthly_examples, labeled_cohorts, MCC
-from isom_project.spend_models import BASE_MODEL, available, load, infer, ROOT
+from isom_project.spend_models import BASE_MODEL, available, load, infer, ROOT, deployed, source_for
 from isom_project.mcc_reference import SOURCE, VERSION, REFERENCE
 
 st.set_page_config(page_title="SpendLens | Card Spending Analytics", page_icon="💳", layout="wide")
@@ -17,9 +17,23 @@ source = st.sidebar.radio("Data source", ["Synthetic demo", "Upload transactions
 @st.cache_data
 def demo():
     return demo_transactions()
-@st.cache_resource
+@st.cache_resource(max_entries=1)
 def model(task):
     return load(task)
+
+
+def evidence(task):
+    path = ROOT / "artifacts" / f"spendlens_{task}" / "evaluation.json"
+    return json.loads(path.read_text()) if path.exists() else None
+
+
+def task_status(task):
+    result = evidence(task)
+    if not result:
+        return "Awaiting fine-tuning"
+    score = result["test"]["test_macro_f1"]
+    target_met = score >= .8 if task == "merchant" else score > result["baseline"]["macro_f1"]
+    return "Trained · target met" if target_met else "Trained · target not met"
 
 data = demo()
 if source == "Upload transactions":
@@ -38,14 +52,14 @@ data = data.loc[data.currency.eq(currency)].copy()
 st.sidebar.caption("Uploads stay in session memory. Use anonymized card tokens, not payment card numbers. This public demo is not an ingestion endpoint for live customer records.")
 
 if page == "Business Overview":
-    st.subheader("Meridian Card Services · fictional business case")
-    st.write("Help portfolio analysts understand category spending, improve missing merchant-category coverage, and forecast the next month's purchase band. Compare aggregate behavior using authorized demographic labels where available; missing identities remain Unknown.")
+    st.subheader("Enterprise Spending Behavior Analytics")
+    st.write("SpendLens helps enterprises analyze card spending behavior, understand category and portfolio trends, improve merchant-category coverage, and forecast future spending bands. Business analysts can compare aggregate behavior across authorized customer groups to support planning and portfolio management.")
     st.dataframe(pd.DataFrame([
-        {"Objective": "Merchant category prediction", "Acceptance target": "Test Macro-F1 ≥ 0.80; compare majority baseline", "State": "Awaiting fine-tuning"},
-        {"Objective": "Next-month spending band", "Acceptance target": "Macro-F1 exceeds previous-2-month baseline", "State": "Awaiting fine-tuning"},
+        {"Objective": "Merchant category prediction", "Acceptance target": "Test Macro-F1 ≥ 0.80; compare majority baseline", "State": task_status("merchant")},
+        {"Objective": "Next-month spending band", "Acceptance target": "Macro-F1 exceeds previous-2-month baseline", "State": task_status("forecast")},
         {"Objective": "Portfolio exploration", "Acceptance target": "Browse and summarize at least 500 transactions", "State": "Available"},
     ]), hide_index=True, use_container_width=True)
-    st.write("Two task-specific models start from a Hugging Face pretrained DistilBERT checkpoint, then fine-tune separately in Colab. No new model training has been run for this redesigned project.")
+    st.write("Two task-specific models start from Hugging Face pretrained DistilBERT weights and fine-tune separately. Model Evidence reports the saved run results and simple baselines; the Colab notebook reproduces this workflow.")
     st.markdown(f"[Hugging Face base model](https://huggingface.co/distilbert/distilbert-base-uncased) · [Citi MCC reference]({SOURCE})")
     st.caption("MCC is a four-digit merchant classification. This demo uses a five-code crosswalk; it is not a complete universal industry taxonomy. Other codes remain unmapped.")
 
@@ -74,9 +88,11 @@ elif page == "Spending Analytics":
 elif page == "Model Pipelines":
     task = st.selectbox("Pipeline", ["merchant", "forecast"])
     st.markdown(f"Pretrained model: `{BASE_MODEL}`")
+    if available(task):
+        st.caption(f"Inference checkpoint: {source_for(task)}")
     if task == "merchant":
         st.write("Merchant description → clean text and tokenize → fine-tuned DistilBERT → label probabilities → suggested category. Known MCC mappings stay authoritative; low-confidence suggestions require review.")
-        texts = st.text_area("Merchant descriptions, one per line", "Fresh Market 12\nHarbor Hotel 8").splitlines()
+        texts = [text.strip() for text in st.text_area("Merchant descriptions, one per line", "Fresh Market 12\nHarbor Hotel 8").splitlines() if text.strip()]
     else:
         st.write("Two complete months of category purchase totals → serialized monthly context → fine-tuned DistilBERT → next-month purchase band. Inputs exclude future transactions and demographic labels.")
         st.caption("USD bands: LOW < 200; MEDIUM 200–399.99; HIGH ≥ 400. These demo thresholds require business calibration.")
@@ -85,7 +101,8 @@ elif page == "Model Pipelines":
         examples = monthly_examples(data)
         st.dataframe(examples, height=350, use_container_width=True)
         st.caption("Historical backtest examples; the last observed month is excluded as a target. Complete monthly account coverage is required.")
-        texts = examples.text.tolist() if not examples.empty else []
+        limit = st.selectbox("Records to score", [20, 120, 600], help="Limit inference work per run on shared cloud resources.")
+        texts = examples.text.head(limit).tolist() if not examples.empty else []
     if not available(task):
         st.info("Awaiting fine-tuning. Configure the task checkpoint after Colab training, evaluation and upload to zhengzhihust.")
     if st.button("Run Transformer inference", disabled=not available(task) or not texts):
@@ -118,7 +135,22 @@ else:
         st.subheader(task.title())
         path = ROOT / "artifacts" / f"spendlens_{task}" / "evaluation.json"
         if path.exists():
-            st.json(json.loads(path.read_text()))
+            result = json.loads(path.read_text())
+            a,b = st.columns(2)
+            a.metric("Test Macro-F1", f"{result['test']['test_macro_f1']:.3f}")
+            b.metric("Baseline Macro-F1", f"{result['baseline']['macro_f1']:.3f}")
+            st.write(task_status(task))
+            st.caption(f"Baseline: {result['baseline']['name']}. Data: {result['data_source']}.")
+            st.dataframe(pd.DataFrame(result['confusion_matrix'], index=result['labels'], columns=result['labels']), use_container_width=True)
+            history_path = path.with_name("training_history.json")
+            if history_path.exists():
+                history = pd.DataFrame(json.loads(history_path.read_text()))
+                validation = history.dropna(subset=['eval_macro_f1'])
+                st.line_chart(validation.set_index('epoch')[['eval_loss','eval_macro_f1']])
+            if deployed(task):
+                st.markdown(f"[Hugging Face checkpoint](https://huggingface.co/{deployed(task)['repo_id']})")
+            with st.expander("Complete evaluation evidence"):
+                st.json(result)
         else:
             st.info("No trained checkpoint or evaluation evidence published yet.")
     st.write("Merchant evaluation holds out entire cards. Forecast evaluation uses chronological target-month splits; two prior months are inputs. Compare both tasks against a simple baseline. Synthetic performance is a software demonstration, not external business validation.")

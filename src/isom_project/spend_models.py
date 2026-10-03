@@ -1,5 +1,6 @@
 """Two task-specific Transformer interfaces; no random-head fallback."""
 import os
+import json
 from pathlib import Path
 import numpy as np
 os.environ.setdefault("USE_TF", "0")
@@ -8,19 +9,27 @@ TASKS = {"merchant": ["Department stores", "Dining", "Fuel", "Grocery", "Lodging
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def deployed(task):
+    path = ROOT / "artifacts" / "spendlens_deployment.json"
+    return json.loads(path.read_text()).get(task, {}) if path.exists() else {}
+
+
 def source_for(task):
-    return os.getenv(f"SPENDLENS_{task.upper()}_MODEL", str(ROOT / "artifacts" / f"spendlens_{task}"))
+    return os.getenv(f"SPENDLENS_{task.upper()}_MODEL", deployed(task).get("repo_id", str(ROOT / "artifacts" / f"spendlens_{task}")))
 
 
 def available(task):
-    return bool(os.getenv(f"SPENDLENS_{task.upper()}_MODEL")) or (Path(source_for(task)) / "model.safetensors").exists()
+    return bool(os.getenv(f"SPENDLENS_{task.upper()}_MODEL")) or bool(deployed(task)) or (Path(source_for(task)) / "model.safetensors").exists()
 
 
 def load(task):
     if not available(task):
         raise ValueError("Awaiting fine-tuning and model upload.")
     from transformers import pipeline
-    pipe = pipeline("text-classification", model=source_for(task), tokenizer=source_for(task), device=-1, top_k=None)
+    import torch
+    torch.set_num_threads(2)
+    revision = None if os.getenv(f"SPENDLENS_{task.upper()}_MODEL") else deployed(task).get("revision")
+    pipe = pipeline("text-classification", model=source_for(task), tokenizer=source_for(task), revision=revision, device=-1, top_k=None)
     if set(pipe.model.config.id2label.values()) != set(TASKS[task]):
         raise ValueError("Checkpoint label schema does not match this task.")
     return pipe
