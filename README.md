@@ -1,0 +1,149 @@
+# isom-group-project
+
+## FairnessLens: Demographic Imputation for Fairness Evaluation
+
+FairnessLens is a Streamlit business application that tests whether demographic attributes imputed from proxy text preserve downstream fairness conclusions. The project fine-tunes a Hugging Face transformer, evaluates both classification quality and fairness-estimation error, and deploys the resulting model in an interactive audit interface.
+
+> **Responsible-use boundary:** the included data are synthetic and use neutral Group A/Group B labels. The application is a classroom validation prototype—not an identity classifier, production compliance tool, or basis for individual decisions.
+
+## Why this meets the ISOM5240 group-project rubric
+
+| Rubric area | Project evidence |
+|---|---|
+| Business App (25%) | Measurable objective; usable Streamlit workflow; CSV upload, validation, inference, fairness comparison, and download |
+| Model (15%) | Hugging Face 2-layer BERT fine-tuning, probabilistic inference, resource-aware sequence length, and reproducible training |
+| Expected Results (10%) | Held-out classification metrics plus observed-versus-imputed fairness error |
+| Coding (20%) | Modular Python package, deterministic data generation, error handling, caching, and automated tests |
+| Documentation & Presentation (10%) | This README, model limitations in the app, reproducible commands, and evaluation artifacts |
+
+The syllabus states that a separate file contains detailed project instructions. That file was not supplied, so this implementation maps to the rubric available in `isom.pdf` and should be reconciled with the separate instructions when obtained.
+
+## Architecture
+
+```text
+Synthetic proxy text + known audit labels
+                |
+                v
+Hugging Face tokenizer -> fine-tuned compact BERT -> P(Group B)
+                |                              |
+                |                              v
+                |                  classification evaluation
+                v
+soft probability weighting -> fairness metrics -> observed/imputed error
+                                                   |
+                                                   v
+                                            Streamlit app
+```
+
+## Local setup
+
+Python 3.10-3.12 is recommended.
+
+```bash
+cd /Users/zaynfuture/Developments/isom-group-project
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+Generate data, fine-tune, evaluate, and launch:
+
+```bash
+python scripts/generate_data.py
+python scripts/train.py --model-name google/bert_uncased_L-2_H-128_A-2 --epochs 2
+python scripts/evaluate.py
+streamlit run app.py
+```
+
+The app opens at `http://localhost:8501`.
+
+## Google Colab training
+
+The easiest route is the included `ISOM_Group_Project_Colab.ipynb`:
+
+1. Open the notebook in Google Colab.
+2. Select a T4 GPU runtime.
+3. Upload `isom-group-project.zip` when prompted.
+4. Run all cells.
+
+The notebook installs dependencies, generates data, fine-tunes the model, evaluates both classification and fairness preservation, verifies the Streamlit inference interface, and downloads a trained-artifact ZIP.
+
+The equivalent manual Colab commands are:
+
+```python
+%cd /content/isom-group-project
+!pip install -q -r requirements-colab.txt
+!python scripts/generate_data.py
+!python scripts/train.py --model-name google/bert_uncased_L-2_H-128_A-2 --epochs 2 --batch-size 32
+!python scripts/evaluate.py
+```
+
+Download the `artifacts/model/` directory and copy it to the same location in the local project before launching Streamlit. The default official 2-layer BERT checkpoint is small enough for a fast CPU or Colab run while still starting from meaningful pretrained weights. For a pipeline-only smoke test, use `--model-name hf-internal-testing/tiny-random-distilbert --epochs 1 --sample-limit 64`; that random checkpoint validates execution but is not a meaningful final model.
+
+## Evaluation design
+
+### Demographic-imputation quality
+
+- Accuracy and balanced accuracy
+- Macro precision, recall, and F1
+- ROC AUC
+- Brier score (probability calibration)
+- Confusion matrix
+
+### Downstream audit validity
+
+- Group selection rates
+- Demographic-parity gap
+- Disparate-impact ratio
+- Equal-opportunity gap
+- False-positive-rate gap
+- Absolute error versus the known synthetic group benchmark
+
+The two levels are deliberately separate: a classifier can score well while still distorting the fairness audit.
+
+### Verified full-run results
+
+The included final model was fine-tuned for two epochs on 4,200 synthetic training records and evaluated on 900 held-out records:
+
+| Metric | Result |
+|---|---:|
+| Accuracy | 0.859 |
+| Macro-F1 | 0.859 |
+| ROC AUC | 0.922 |
+| Brier score | 0.180 |
+| Observed demographic-parity gap | -0.150 |
+| Soft-imputed demographic-parity gap | -0.017 |
+| Absolute DP-gap error | 0.133 |
+
+The result is intentionally interpreted at both levels: the classifier discriminates the synthetic groups reasonably well, yet probability weighting substantially attenuates the downstream disparity. This is evidence for the project's central claim—not a production-valid demographic model.
+
+## Streamlit pages
+
+1. **Overview:** business goal and project boundary.
+2. **Single prediction:** inspect a probability from the fine-tuned model.
+3. **Batch fairness audit:** upload CSV, run batched inference, compare fairness metrics, and download scored records.
+4. **Model evaluation:** view held-out model and downstream fairness results.
+5. **Responsible use:** intended use, limitations, and governance controls.
+
+Uploaded CSV files require `text`, `qualified`, and `decision`. Include `group_b` when ground truth is available so the app can calculate fairness-estimation error.
+
+## Tests
+
+```bash
+pytest -q
+```
+
+## Generative-AI acknowledgement
+
+AI-assisted tools were used to support code scaffolding, documentation, and testing. The student team remains responsible for understanding, validating, explaining, and presenting the work. No generative AI should be used to substantially produce the required video presentation unless the instructor explicitly permits it.
+
+## Submission checklist
+
+- [ ] Replace smoke-test artifacts with a full fine-tuned model.
+- [ ] Run `pytest -q` with all tests passing.
+- [ ] Run held-out evaluation and retain `artifacts/metrics.json`.
+- [ ] Demonstrate error handling with an invalid CSV.
+- [ ] Record a clear video presentation (mandatory under the syllabus).
+- [ ] Acknowledge AI assistance and cite data/model sources.
+- [ ] Confirm requirements against the separate project-details file.
