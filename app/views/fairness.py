@@ -6,7 +6,7 @@ from app.services.disparity import FIELDS, METRICS, demo_labels, validate_labels
 
 
 def render(data, synthetic):
-    st.subheader("FairnessLens | Spending Disparity Screening")
+    st.write("FairnessLens · Spending disparity screening")
     st.write("Compare spending behavior across authorized gender, age and ethnicity groups. Identify differences for investigation, not demographic identities or automatic discrimination verdicts.")
     st.info("Spending differences alone do not establish unfair treatment. Decision fairness requires a defined business outcome (such as offer eligibility or approval), the relevant eligible population and contextual review. Those outcomes are not present in this transaction dataset.")
     template = pd.DataFrame(columns=["card_id", *FIELDS, "consent", "source"])
@@ -37,8 +37,9 @@ def render(data, synthetic):
         st.info("No transactions in this window."); return
     metric = st.selectbox("Behavior metric", METRICS)
     category = st.selectbox("Spending category", sorted(filtered.category.unique())) if metric == METRICS[2] else None
-    minimum = st.number_input("Minimum distinct cards per group", 10, 500, 10)
-    threshold = st.number_input("Minimum practical absolute gap", min_value=0.0, value=0.05 if metric == METRICS[2] else 0.0,
+    with st.expander("Comparison settings", expanded=False):
+        minimum = st.number_input("Minimum distinct cards per group", 10, 500, 10)
+        threshold = st.number_input("Minimum practical absolute gap", min_value=0.0, value=0.05 if metric == METRICS[2] else 0.0,
                                 help="Share uses 0–1 units (0.05 = 5 percentage points); amount uses the selected currency; count uses purchases per card. Set before reviewing results.")
     values = card_metrics(filtered, metric, category)
     joined = values.merge(labels[["card_id", field]], on="card_id", how="left")
@@ -49,7 +50,8 @@ def render(data, synthetic):
         st.warning("Insufficient data: at least two groups must meet the minimum card count."); return
     reference = st.selectbox("Reference group (comparison only, not a preferred group)", eligible)
     st.caption("Unit: observed card, not person. Positive purchases only; refunds are excluded. Counts and amounts cover the selected window, not active-month-normalized values. Category share is averaged across cards; cards with zero purchases have undefined shares. No-activity cards absent from the extract cannot be evaluated.")
-    st.caption("999 seeded card-level resamples. Two-sided permutation tests; Holm correction across comparisons in this report only. Bootstrap 95% gap intervals are unadjusted. Repeated exploration across dimensions, dates or metrics is not corrected. Cards must be independent; shared owners, unequal observation coverage, income and location can confound results.")
+    with st.expander("How comparisons work"):
+        st.caption("999 seeded card-level resamples. Two-sided permutation tests; Holm correction across comparisons in this report only. Bootstrap 95% gap intervals are unadjusted. Repeated exploration across dimensions, dates or metrics is not corrected. Cards must be independent; shared owners, unequal observation coverage, income and location can confound results.")
     if st.button("Run disparity screening", type="primary"):
         try:
             with st.spinner("Comparing card-level behavior..."):
@@ -67,7 +69,8 @@ def render(data, synthetic):
             if "fx_snapshot_id" in filtered:
                 manifest["fx_snapshots"] = sorted(filtered.fx_snapshot_id.unique().tolist())
                 manifest["fx_policy"] = "UTC transaction-date reference FX, backward-only max 7 days; same reporting currency for all groups"
-            st.json(manifest)
+            with st.expander("Audit settings for this report"):
+                st.json(manifest)
             st.download_button("Download aggregate disparity report", report.to_csv(index=False), "fairnesslens_disparities.csv", "text/csv")
             st.download_button("Download audit settings", json.dumps(manifest, indent=2), "fairnesslens_settings.json", "application/json")
         except Exception as exc:

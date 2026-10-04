@@ -14,9 +14,16 @@ from app.services.currency import (COMMON_CURRENCIES, currency_label, money, fet
 
 st.set_page_config(page_title="SpendLens | Card Spending Analytics", page_icon="💳", layout="wide")
 st.title("SpendLens")
-st.caption("Card transaction analytics · Merchant classification · Future spending bands · FairnessLens")
-page = st.sidebar.radio("Workspace", ["Business Overview", "Transaction Explorer", "Spending Analytics", "Model Pipelines", "Cohort Analysis", "FairnessLens", "Model Evidence"])
-source = st.sidebar.radio("Data source", ["Synthetic demo", "Upload transactions"])
+st.caption("Understand spending. Explore predictions. Review group differences.")
+PAGES = {"Business Overview":"Start here", "Transaction Explorer":"1 · Prepare data", "Spending Analytics":"2 · Explore spending", "Model Pipelines":"3 · Model insights", "FairnessLens":"4 · Compare groups", "Model Evidence":"Model performance"}
+def navigate(destination):
+    st.session_state.workspace = destination
+
+st.sidebar.title("Your workspace")
+page = st.sidebar.radio("Navigate", list(PAGES), format_func=PAGES.get, key="workspace")
+st.sidebar.divider()
+st.sidebar.subheader("Data & currency")
+source = st.sidebar.radio("Data source", ["Synthetic demo", "Upload transactions"], help="Start with demo data, then upload an approved anonymized extract.")
 @st.cache_data
 def demo():
     return demo_transactions()
@@ -57,7 +64,10 @@ data = demo()
 if source == "Upload transactions":
     uploaded = st.sidebar.file_uploader("Transactions CSV", type="csv")
     if uploaded is None:
-        st.info("Upload anonymized transactions to continue. Required columns are available in the demo CSV template.")
+        st.subheader("Add your transaction data")
+        st.info("Choose a CSV in the sidebar, or select Synthetic demo to explore without uploading.")
+        st.write("Required columns: transaction_id, card_id, timestamp, amount, currency, mcc, merchant_description, city, channel.")
+        st.caption("Use anonymous card IDs, ISO currency codes (USD, SGD, EUR…), and valid dates. Purchases are positive; refunds are negative. Never upload card numbers or identifiable customer records.")
         st.download_button("Download demo / template CSV", data.to_csv(index=False), "transactions.csv", "text/csv")
         st.stop()
     try:
@@ -74,7 +84,7 @@ if st.sidebar.checkbox("Show all provider currencies", value=False):
         st.sidebar.warning(str(exc))
 currencies = ["USD"] + [c for c in currencies if c != "USD"]
 currency = st.sidebar.selectbox("Reporting currency", currencies, index=0, format_func=currency_label)
-st.sidebar.caption("Default: USD. Mixed-currency transactions are converted, not filtered out. Historical reference FX; not card-network settlement rates.")
+st.sidebar.caption("All totals use this currency. Default: USD.")
 fx_book = None
 try:
     if not raw_data.currency.eq(currency).all():
@@ -86,7 +96,10 @@ except (FXError, ValueError) as exc:
     st.info("No partial or 1:1 substitution was used. Retry, select the original currency for a single-currency file, or check the date/currency coverage.")
     st.stop()
 st.sidebar.caption("Uploads stay in session memory. Use anonymized card tokens, not payment card numbers. This public demo is not an ingestion endpoint for live customer records.")
-with st.expander("Currency conversion details"):
+st.caption(f"{'Demo data' if source == 'Synthetic demo' else 'Uploaded data'} · {len(data):,} transactions · {data.card_id.nunique():,} cards · {data.timestamp.min():%d %b %Y} – {data.timestamp.max():%d %b %Y} · {currency}")
+if page != "Business Overview":
+    st.subheader(PAGES[page])
+with st.sidebar.expander("Exchange rates & audit"):
     st.write(f"Reporting currency: {currency}. Original amounts and currency codes remain in transaction exports. Conversion uses CurrencyConverter with Frankfurter reference-rate data, using the latest observation on or before each UTC transaction date (at most 7 days old).")
     st.caption("Historical rates can be revised by providers; snapshots are retrieved today, not guaranteed publication-time vintages. No future-dated observations are used. Daily reference rates exclude bank spreads and transaction fees. Decimal arithmetic is used for conversion; analytical tables retain unrounded floating-point amounts and are not an accounting ledger.")
     fx_audit = data[["original_currency","currency","fx_rate","fx_source_date","fx_target_date","fx_provider","fx_retrieved_at","fx_snapshot_id"]].drop_duplicates()
@@ -94,17 +107,23 @@ with st.expander("Currency conversion details"):
     st.download_button("Download FX audit",fx_audit.to_csv(index=False),"spendlens_fx_audit.csv","text/csv")
 
 if page == "Business Overview":
-    st.subheader("Enterprise Spending Behavior Analytics")
-    st.write("SpendLens helps enterprises analyze card spending behavior, understand category and portfolio trends, improve merchant-category coverage, and forecast future spending bands. Business analysts can compare aggregate behavior across authorized customer groups to support planning and portfolio management.")
-    st.write("FairnessLens extends this workflow with gender, age-band and ethnicity spending-disparity screening using authorized labels, card-level comparisons and uncertainty estimates. Differences prompt contextual review; they do not alone demonstrate unfair treatment.")
-    st.dataframe(pd.DataFrame([
-        {"Objective": "Merchant category prediction", "Acceptance target": "Test Macro-F1 ≥ 0.80; compare majority baseline", "State": task_status("merchant")},
-        {"Objective": "Next-month spending band", "Acceptance target": "Macro-F1 exceeds previous-2-month baseline", "State": task_status("forecast")},
-        {"Objective": "Portfolio exploration", "Acceptance target": "Browse and summarize at least 500 transactions", "State": "Available"},
-    ]), hide_index=True, use_container_width=True)
-    st.write("Two task-specific Transformers are fine-tuned separately: MiniLM for merchant text classification and Chronos-Bolt Tiny for numeric monthly spending forecasts. Model Evidence reports actual results and baselines; the Colab notebook reproduces this workflow.")
-    st.markdown(f"[MiniLM base model](https://huggingface.co/microsoft/MiniLM-L12-H384-uncased) · [Chronos-Bolt base model](https://huggingface.co/amazon/chronos-bolt-tiny) · [Citi MCC reference]({SOURCE})")
-    st.caption("MCC is a four-digit merchant classification. This demo uses a five-code crosswalk; it is not a complete universal industry taxonomy. Other codes remain unmapped.")
+    st.header("From transactions to insights")
+    st.write("Analyze enterprise card spending and compare group behavior in four steps.")
+    st.success("Demo data is ready — no upload or setup required." if source == "Synthetic demo" else "Your data is loaded. Continue with spending analysis.")
+    st.button("Explore demo spending" if source == "Synthetic demo" else "Explore your spending", type="primary", on_click=navigate, args=("Spending Analytics",))
+    for column, destination, title, description in zip(st.columns(2), ["Transaction Explorer", "Spending Analytics"], ["1. Prepare your data", "2. Understand spending"], ["Review transactions, check currencies and download a CSV template.", "See totals, category patterns and monthly trends."]):
+        with column.container(border=True):
+            st.subheader(title); st.write(description)
+            st.button("Open " + title[3:].lower(), key=destination, on_click=navigate, args=(destination,))
+    for column, destination, title, description in zip(st.columns(2), ["Model Pipelines", "FairnessLens"], ["3. Explore model insights", "4. Compare groups"], ["Suggest merchant categories or explore historical spending forecasts.", "Use authorized labels to review age, gender or ethnicity spending differences."]):
+        with column.container(border=True):
+            st.subheader(title); st.write(description)
+            st.button("Open " + title[3:].lower(), key=destination, on_click=navigate, args=(destination,))
+    st.caption("Group differences are screening signals, not proof of discrimination. Model results on synthetic data do not establish real-world accuracy.")
+    with st.expander("About SpendLens & model performance"):
+        st.write("SpendLens supports enterprise spending analysis with two separately fine-tuned Transformers: MiniLM for merchant categories and Chronos-Bolt for monthly spending. Training and evaluation are separate from this app.")
+        st.write(f"Merchant classification: {task_status('merchant')}. Spending forecast: {task_status('forecast')}.")
+        st.button("Review model performance", on_click=navigate, args=("Model Evidence",))
 
 elif page == "Transaction Explorer":
     a,b,c = st.columns(3)
@@ -112,10 +131,12 @@ elif page == "Transaction Explorer":
     st.caption("All records are available below; scroll inside the table.")
     st.dataframe(data, height=550, hide_index=True, use_container_width=True)
     st.download_button("Download current transactions", data.to_csv(index=False), "transactions.csv", "text/csv")
-    st.subheader("Reviewed MCC reference")
-    st.dataframe(pd.DataFrame(REFERENCE).T.rename_axis("MCC"), use_container_width=True)
-    st.caption(f"Source: user-supplied Citi manual. Version: {VERSION}. Descriptions are normalized summaries. Brands may differ; consult the source before expanding coverage.")
-    st.markdown(f"[Open original MCC manual]({SOURCE})")
+    with st.expander("CSV format & merchant category reference"):
+        st.write("Keep original amounts and ISO currency codes in your upload. The displayed export also includes converted amounts and FX audit fields.")
+        st.dataframe(pd.DataFrame(REFERENCE).T.rename_axis("MCC"), use_container_width=True)
+        st.caption(f"Five-code reviewed crosswalk; other MCCs remain unmapped. Version: {VERSION}.")
+        st.markdown(f"[Open original MCC manual]({SOURCE})")
+    st.button("Next: explore spending →", type="primary", on_click=navigate, args=("Spending Analytics",))
 
 elif page == "Spending Analytics":
     st.caption("Positive amounts are purchases; negative amounts are refunds. Charts display net amounts in the selected currency. Dates are normalized to UTC.")
@@ -123,16 +144,21 @@ elif page == "Spending Analytics":
     a.metric("Purchases", money(data.loc[data.amount.gt(0),'amount'].sum(),currency))
     b.metric("Refunds", money(-data.loc[data.amount.lt(0),'amount'].sum(),currency))
     c.metric("Net amount", money(data.amount.sum(),currency))
+    st.subheader("Where is the money going?")
     st.bar_chart(data.groupby("category").amount.sum())
+    st.subheader("How does spending change over time?")
     st.line_chart(data.set_index("timestamp").amount.resample("MS").sum())
     summary = data.groupby("card_id").agg(transactions=("transaction_id","size"),net_amount=("amount","sum"),average_transaction=("amount","mean"))
     st.dataframe(summary, height=400, use_container_width=True)
+    st.download_button("Download card summary", summary.to_csv(), "card_spending_summary.csv", "text/csv")
+    st.button("Next: explore model insights →", type="primary", on_click=navigate, args=("Model Pipelines",))
 
 elif page == "Model Pipelines":
-    task = st.selectbox("Pipeline", ["merchant", "forecast"])
-    st.markdown(f"Pretrained model: `{BASE_MODELS[task]}`")
-    if available(task):
-        st.caption(f"Inference checkpoint: {source_for(task)}")
+    task = st.radio("What would you like to do?", ["merchant", "forecast"], format_func=lambda value: {"merchant":"Suggest merchant categories", "forecast":"Explore spending forecasts (backtest)"}[value])
+    with st.expander("Model details"):
+        st.markdown(f"Pretrained model: `{BASE_MODELS[task]}`")
+        if available(task):
+            st.caption(f"Inference checkpoint: {source_for(task)}")
     if task == "merchant":
         st.write("Merchant description → clean text and tokenize → fine-tuned MiniLM → label probabilities → suggested category. Known MCC mappings stay authoritative; low-confidence suggestions require review. Softmax scores are not calibrated confidence guarantees.")
         texts = [text.strip() for text in st.text_area("Merchant descriptions, one per line", "Fresh Market 12\nHarbor Hotel 8").splitlines() if text.strip()]
@@ -153,7 +179,7 @@ elif page == "Model Pipelines":
         texts = examples.context.head(limit).tolist() if not examples.empty else []
     if not available(task):
         st.info("Awaiting fine-tuning. Configure the task checkpoint after Colab training, evaluation and upload to zhengzhihust.")
-    if st.button("Run Transformer inference", disabled=not available(task) or not texts):
+    if st.button("Suggest categories" if task == "merchant" else "Run historical forecast", type="primary", disabled=not available(task) or not texts):
         try:
             if task == "forecast":
                 result = predict_amounts(model(task), texts)
@@ -171,24 +197,22 @@ elif page == "Model Pipelines":
             st.download_button("Download predictions", result.to_csv(index=False), "predictions.csv", "text/csv")
         except Exception as exc:
             st.error(f"Model inference failed: {exc}")
-
-elif page == "Cohort Analysis":
-    st.write("Upload voluntarily provided demographic labels with card_id, consent, source and the selected field. Gender and ethnicity are never inferred from transactions. Missing labels stay Unknown.")
-    field = st.selectbox("Authorized label", ["age_band", "gender", "ethnicity"])
-    labels_file = st.file_uploader("Authorized labels CSV", type="csv")
-    if labels_file:
-        try:
-            labels = pd.read_csv(labels_file, dtype={"card_id":str})
-            summary = labeled_cohorts(data, labels, field)
-            st.caption("Only category/group cells containing at least 10 distinct cards are displayed. This suppression alone is not a formal privacy guarantee. Cards are not necessarily unique people.")
-            st.dataframe(summary, use_container_width=True)
-            st.download_button("Download aggregate cohorts", summary.to_csv(index=False), "cohorts.csv", "text/csv")
-        except Exception as exc:
-            st.error(str(exc))
+    st.button("Next: compare groups →", on_click=navigate, args=("FairnessLens",))
 
 elif page == "FairnessLens":
     from app.views.fairness import render
     render(data, source == "Synthetic demo")
+    with st.expander("Additional analysis: category spending by group"):
+        st.caption("Upload authorized labels to export aggregate category/group spending. Small cells are suppressed.")
+        field = st.selectbox("Group dimension", ["age_band", "gender", "ethnicity"])
+        labels_file = st.file_uploader("Category analysis labels CSV", type="csv")
+        if labels_file:
+            try:
+                summary = labeled_cohorts(data, pd.read_csv(labels_file,dtype={"card_id":str}), field)
+                st.dataframe(summary, use_container_width=True)
+                st.download_button("Download category groups",summary.to_csv(index=False),"cohorts.csv","text/csv")
+            except Exception as exc:
+                st.error(str(exc))
 
 else:
     st.write("Task-specific evidence is generated only after fine-tuning. Previous FairnessLens demographic results do not evaluate these models.")
