@@ -1,0 +1,239 @@
+{
+  "scope": "Local CPU smoke execution; not full training or Colab-hosted verification",
+  "publication": "disabled",
+  "runs": {
+    "merchant": {
+      "execution": {
+        "notebook": "01_merchant_experiment.ipynb",
+        "mode": "smoke",
+        "dataset": "legacy",
+        "passed": true,
+        "elapsed_seconds": 86.83361062500626
+      },
+      "run_id": "merchant-legacy-20261004T065443675769Z",
+      "evaluation": {
+        "train": {
+          "train_accuracy": 0.791015625,
+          "train_macro_f1": 0.7349544072948329
+        },
+        "validation": {
+          "validation_accuracy": 0.765625,
+          "validation_macro_f1": 0.725
+        },
+        "test": {
+          "test_accuracy": 0.875,
+          "test_macro_f1": 0.7555555555555555
+        },
+        "baseline": {
+          "name": "training majority class",
+          "macro_f1": 0.07179487179487179
+        },
+        "confusion_matrix": [
+          [
+            25,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            28,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            16,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            28,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            31
+          ]
+        ],
+        "labels": [
+          "Department stores",
+          "Dining",
+          "Fuel",
+          "Grocery",
+          "Lodging"
+        ],
+        "base_model": "microsoft/MiniLM-L12-H384-uncased",
+        "base_revision": "44acabbec0ef496f6dbc93adadea57f376b7c0ec",
+        "candidate_results": [
+          {
+            "model": "prajjwal1/bert-tiny",
+            "revision": "6f75de8b60a9f8a2fdf7b69cbd86d9e64bcb3837",
+            "validation_macro_f1": 0.5071428571428571,
+            "parameters": 4386565,
+            "training_seconds": 0.5231140420073643
+          },
+          {
+            "model": "microsoft/MiniLM-L12-H384-uncased",
+            "revision": "44acabbec0ef496f6dbc93adadea57f376b7c0ec",
+            "validation_macro_f1": 0.725,
+            "parameters": 33361925,
+            "training_seconds": 2.8847140000434592
+          }
+        ],
+        "data_source": "legacy",
+        "data_sha256": "dbd7aca06d880fd45c0a29303025d7b7e51fa048bb8ba1859e9eb034ad1aa95a",
+        "smoke": true,
+        "seed": 5240,
+        "split_counts": {
+          "train": 512,
+          "validation": 128,
+          "test": 128
+        },
+        "selection_metric": "validation macro_f1; ties favor fewer parameters",
+        "limitations": "Synthetic repeated templates, no external validation. Historical test targets previously inspected. Smoke scores are software checks."
+      },
+      "reload": {
+        "passed": true,
+        "samples": 2,
+        "atol": 1e-05
+      },
+      "environment": {
+        "torch": "2.13.0",
+        "transformers": "4.57.6",
+        "datasets": "4.8.5",
+        "chronos-forecasting": "2.3.2",
+        "numpy": "2.4.6",
+        "pandas": "3.0.5",
+        "python": "3.13.14"
+      }
+    },
+    "forecast": {
+      "execution": {
+        "notebook": "02_forecast_experiment.ipynb",
+        "mode": "smoke",
+        "dataset": "legacy",
+        "passed": true,
+        "elapsed_seconds": 56.87483941699611
+      },
+      "run_id": "forecast-legacy-20261004T065448097262Z",
+      "evaluation": {
+        "train": {
+          "train_mae": 131.44491628011068,
+          "train_macro_f1": 0.291358024691358,
+          "train_accuracy": 0.5833333333333334,
+          "train_mean_pinball_loss": 49.74528310705113,
+          "train_interval_80_coverage": 0.75
+        },
+        "validation": {
+          "validation_mae": 80.59989339192708,
+          "validation_macro_f1": 0.34640522875817,
+          "validation_accuracy": 0.5833333333333334,
+          "validation_mean_pinball_loss": 37.65247988382975,
+          "validation_interval_80_coverage": 0.8333333333333334
+        },
+        "test": {
+          "test_mae": 112.05126825968426,
+          "test_macro_f1": 0.19607843137254902,
+          "test_accuracy": 0.4166666666666667,
+          "test_mean_pinball_loss": 42.81174017164442,
+          "test_interval_80_coverage": 0.6666666666666666
+        },
+        "baseline": {
+          "name": "previous two-month average",
+          "mae": 104.28916666666665,
+          "macro_f1": 0.24561403508771928
+        },
+        "confusion_matrix": [
+          [
+            0,
+            0,
+            3
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            5
+          ]
+        ],
+        "labels": [
+          "HIGH",
+          "LOW",
+          "MEDIUM"
+        ],
+        "base_model": "amazon/chronos-bolt-mini",
+        "base_revision": "251268337516a88e253628c43e1d26ec577b376b",
+        "architecture": "chronos-bolt",
+        "candidate_results": [
+          {
+            "model": "amazon/chronos-bolt-tiny",
+            "revision": "a0e552de83495b5c28c14c71c374f3e33280b340",
+            "validation_pinball_loss": 41.1341361787584,
+            "validation_mae": 82.09698760986328,
+            "parameters": 8652672
+          },
+          {
+            "model": "amazon/chronos-bolt-mini",
+            "revision": "251268337516a88e253628c43e1d26ec577b376b",
+            "validation_pinball_loss": 37.59647365570069,
+            "validation_mae": 82.544060160319,
+            "parameters": 21236096
+          }
+        ],
+        "best_epoch": 1,
+        "data_source": "legacy",
+        "data_sha256": "dbd7aca06d880fd45c0a29303025d7b7e51fa048bb8ba1859e9eb034ad1aa95a",
+        "smoke": true,
+        "seed": 5240,
+        "split_counts": {
+          "train": 36,
+          "validation": 12,
+          "test": 12
+        },
+        "split_months": {
+          "train": [
+            "2025-03",
+            "2025-04",
+            "2025-05"
+          ],
+          "validation": [
+            "2025-06"
+          ],
+          "test": [
+            "2025-07"
+          ]
+        },
+        "selection_metric": "pretrained validation pinball loss for architecture; validation pinball loss for fine-tuned epoch",
+        "limitations": "Only two historical months per input. Synthetic data, same cards across time splits, no independent external validation. Smoke scores are software checks."
+      },
+      "reload": {
+        "passed": true,
+        "samples": 2,
+        "atol": 0.001
+      },
+      "environment": {
+        "torch": "2.13.0",
+        "transformers": "4.57.6",
+        "datasets": "4.8.5",
+        "chronos-forecasting": "2.3.2",
+        "numpy": "2.4.6",
+        "pandas": "3.0.5",
+        "python": "3.13.14"
+      }
+    }
+  }
+}
