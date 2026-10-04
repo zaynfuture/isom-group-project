@@ -1,6 +1,7 @@
 """Offline UI acceptance checks for the guided analyst journey."""
 from pathlib import Path
 from streamlit.testing.v1 import AppTest
+from model.data.scenarios import scenario_transactions
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -15,7 +16,7 @@ def test_guided_journey_and_default_currency():
     assert next(x for x in app.selectbox if x.label == 'Reporting currency').value == 'USD'
     click(app, 'Review transactions')
     assert app.session_state['workspace'] == 'Transaction Explorer'
-    assert any(len(table.value) == 7680 for table in app.dataframe)
+    assert any(len(table.value) == len(scenario_transactions()) for table in app.dataframe)
     click(app, 'Next: explore spending →')
     click(app, 'Next: explore model insights →')
     assert any(x.label == 'Suggest categories' for x in app.button)

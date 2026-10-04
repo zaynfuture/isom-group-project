@@ -12,12 +12,12 @@ Live application: https://spendlens-card-analytics.streamlit.app/
 
 The main Streamlit entry point now serves card spending analytics. Run `streamlit run app.py`. Previous FairnessLens code remains in `legacy_fairness_app.py`; its results must not be presented as SpendLens evidence.
 
-- Browse 7,680 synthetic transactions for 120 cards across eight months, or validate an anonymized CSV.
+- Browse 13,213 synthetic records for 120 cards across eight months: 12,747 purchases, 294 full refunds and 172 partial refunds. Fourteen categories and six balanced lifestyle scenarios support varied activity, recurring bills and weekday/weekend behavior. These are simulation assumptions, not real-world distribution estimates. The original 7,680-row training fixture remains separate; see `specs/007-behavioral-synthetic-data.md`.
 - View currency-normalized purchases, refunds, net spending and category trends.
 - Pipeline 1: pretrained Microsoft MiniLM fine-tuned for merchant category classification.
 - Pipeline 2: pretrained Amazon Chronos-Bolt Tiny fine-tuned on numeric monthly purchases, producing next-month p10/p50/p90 amounts and derived spending bands.
 - `SpendLens_Colab.ipynb` supplies reproducible training, evaluation, save/reload checks and explicit upload steps. Model Evidence shows committed run artifacts; never treat synthetic results as production validation.
-- MCC reference: [user-supplied Citi manual](https://www.citibank.com/tts/solutions/commercial-cards/assets/docs/govt/Merchant-Category-Codes.pdf). The reviewed mapping contains five codes; raw MCC, normalized description and mapping version are retained. Other codes are explicitly unmapped.
+- MCC reference: [user-supplied Citi manual](https://www.citibank.com/tts/solutions/commercial-cards/assets/docs/govt/Merchant-Category-Codes.pdf). Analytics recognizes 14 reviewed codes; the merchant model remains limited to its five trained labels. Raw MCC, normalized description and mapping version are retained. Other codes are explicitly unmapped.
 - FairnessLens compares gender, age-band and ethnicity spending disparities using authorized labels, card-level permutation tests, Holm correction and bootstrap intervals. Statistical differences do not establish discrimination; identities are not inferred from spending.
 
 Model repositories: [merchant MiniLM](https://huggingface.co/zhengzhihust/spendlens-merchant-minilm) and [spending Chronos-Bolt](https://huggingface.co/zhengzhihust/spendlens-spending-chronos-bolt-tiny). The application uses `model/artifacts/spendlens_deployment.json` to pin verified revisions and matching evaluation directories. Do not replace a verified revision with a moving branch or commit credentials. Existing environment overrides take precedence and must match the task architecture.

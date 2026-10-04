@@ -8,7 +8,8 @@ import streamlit as st
 from model.data.transactions import demo_transactions, validate_transactions, monthly_examples, labeled_cohorts, MCC
 from model.inference.registry import BASE_MODEL, BASE_MODELS, available, load, infer, ROOT, deployed, source_for
 from model.inference.forecasting import numeric_examples, predict_amounts
-from model.data.mcc_reference import SOURCE, VERSION, REFERENCE
+from model.data.mcc_reference import SOURCE, SPENDING_VERSION as VERSION, SPENDING_REFERENCE as REFERENCE
+from model.data.scenarios import scenario_transactions
 from app.services.currency import (COMMON_CURRENCIES, currency_label, money, fetch_catalog,
     fetch_snapshot, FXBook, FXError, convert_transactions, display_forecast)
 
@@ -26,7 +27,7 @@ st.sidebar.subheader("Data & currency")
 source = st.sidebar.radio("Data source", ["Synthetic demo", "Upload transactions"], help="Start with demo data, then upload an approved anonymized extract.")
 @st.cache_data
 def demo():
-    return demo_transactions()
+    return scenario_transactions()
 @st.cache_resource(max_entries=1)
 def model(task):
     return load(task)
@@ -131,11 +132,16 @@ elif page == "Transaction Explorer":
     st.caption("All records are available below; scroll inside the table.")
     st.dataframe(data, height=550, hide_index=True, use_container_width=True)
     st.download_button("Download current transactions", data.to_csv(index=False), "transactions.csv", "text/csv")
+    if source == "Synthetic demo":
+        with st.expander("What is included in this demo?"):
+            st.write("14 spending categories and six equally represented simulated lifestyles, with variable activity, category-specific purchase amounts, recurring bills and weekday/weekend preferences. These are design assumptions, not measured population statistics or inferred identities.")
+            st.write(f"Purchases: {int(data.amount.gt(0).sum()):,} · Refunds: {int(data.amount.lt(0).sum()):,}. Refunds link to an earlier purchase through original_transaction_id; full and partial refunds occur 2–21 days later, sometimes in another month.")
+            st.caption("Amounts represent partial card-wallet activity in USD, not total household budgets. Refunds after the observation window are not included. Scenarios are independent of demographic labels. Existing model metrics describe the original five-category training fixture, not this expanded demo.")
     with st.expander("CSV format & merchant category reference"):
         st.write("Keep original amounts and ISO currency codes in your upload. The displayed export also includes converted amounts and FX audit fields.")
         st.download_button("Download sample CSV template", demo().to_csv(index=False), "spendlens_template.csv", "text/csv")
         st.dataframe(pd.DataFrame(REFERENCE).T.rename_axis("MCC"), use_container_width=True)
-        st.caption(f"Five-code reviewed crosswalk; other MCCs remain unmapped. Version: {VERSION}.")
+        st.caption(f"14-code reviewed analytics crosswalk; other MCCs remain unmapped. Version: {VERSION}. The merchant model still supports only its five trained labels.")
         st.markdown(f"[Open original MCC manual]({SOURCE})")
     st.button("Next: explore spending →", type="primary", on_click=navigate, args=("Spending Analytics",))
 
@@ -145,6 +151,12 @@ elif page == "Spending Analytics":
     a.metric("Purchases", money(data.loc[data.amount.gt(0),'amount'].sum(),currency))
     b.metric("Refunds", money(-data.loc[data.amount.lt(0),'amount'].sum(),currency))
     c.metric("Net amount", money(data.amount.sum(),currency))
+    st.caption(f"{int(data.amount.gt(0).sum()):,} purchases · {int(data.amount.lt(0).sum()):,} refunds. Refunds reduce net spending; model forecasts and disparity screening use positive purchases only.")
+    if source == "Synthetic demo":
+        with st.expander("Explore simulated lifestyles & refunds"):
+            st.caption("Scenario labels are simulator metadata, not inferred customer traits. Six profiles contain 20 cards each; category frequencies are intentionally non-uniform.")
+            st.dataframe(data.groupby("synthetic_lifestyle").agg(cards=("card_id","nunique"),transactions=("amount","size"),net_amount=("amount","sum")),use_container_width=True)
+            st.dataframe(data.loc[data.amount.lt(0),["transaction_id","original_transaction_id","timestamp","category","transaction_type","amount","refund_reason"]],height=300,hide_index=True,use_container_width=True)
     st.subheader("Where is the money going?")
     st.bar_chart(data.groupby("category").amount.sum())
     st.subheader("How does spending change over time?")
@@ -155,6 +167,8 @@ elif page == "Spending Analytics":
     st.button("Next: explore model insights →", type="primary", on_click=navigate, args=("Model Pipelines",))
 
 elif page == "Model Pipelines":
+    if source == "Synthetic demo":
+        st.info("This expanded demo is not the training dataset. Published evaluation scores apply to the original fixture. Merchant suggestions cover Grocery, Dining, Fuel, Department stores and Lodging only; other categories require model retraining. Forecasts on the new spending distribution are exploratory and unvalidated.")
     task = st.radio("What would you like to do?", ["merchant", "forecast"], format_func=lambda value: {"merchant":"Suggest merchant categories", "forecast":"Explore spending forecasts (backtest)"}[value])
     with st.expander("Model details"):
         st.markdown(f"Pretrained model: `{BASE_MODELS[task]}`")

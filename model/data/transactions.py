@@ -1,7 +1,7 @@
 """SpendLens transaction contracts, deterministic demo and temporal examples."""
 import numpy as np
 import pandas as pd
-from .mcc_reference import REFERENCE, VERSION
+from .mcc_reference import REFERENCE, VERSION, SPENDING_REFERENCE, SPENDING_VERSION
 
 # Deliberately limited demonstration crosswalk, not the complete MCC standard.
 MCC = {code: item["category"] for code, item in REFERENCE.items()}
@@ -49,9 +49,9 @@ def validate_transactions(frame):
     result["mcc"] = result.mcc.fillna("").astype(str).str.replace(r"\.0$", "", regex=True).str.strip()
     if not (result.mcc.eq("") | result.mcc.str.fullmatch(r"\d{4}")).all():
         raise ValueError("MCC must be four digits or blank.")
-    result["category"] = result.mcc.map(MCC).fillna("Other / unmapped")
-    result["mcc_description"] = result.mcc.map({code: item["description"] for code,item in REFERENCE.items()}).fillna("Not in reviewed reference subset")
-    result["mapping_version"] = VERSION
+    result["category"] = result.mcc.map({code: item["category"] for code,item in SPENDING_REFERENCE.items()}).fillna("Other / unmapped")
+    result["mcc_description"] = result.mcc.map({code: item["description"] for code,item in SPENDING_REFERENCE.items()}).fillna("Not in reviewed reference subset")
+    result["mapping_version"] = SPENDING_VERSION
     return result.sort_values(["timestamp", "transaction_id"]).reset_index(drop=True)
 
 
