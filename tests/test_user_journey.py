@@ -13,7 +13,7 @@ def test_guided_journey_and_default_currency():
     assert not app.exception
     assert app.session_state['workspace'] == 'Business Overview'
     assert next(x for x in app.selectbox if x.label == 'Reporting currency').value == 'USD'
-    click(app, 'Open prepare your data')
+    click(app, 'Review transactions')
     assert app.session_state['workspace'] == 'Transaction Explorer'
     assert any(len(table.value) == 7680 for table in app.dataframe)
     click(app, 'Next: explore spending →')

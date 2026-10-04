@@ -114,11 +114,11 @@ if page == "Business Overview":
     for column, destination, title, description in zip(st.columns(2), ["Transaction Explorer", "Spending Analytics"], ["1. Prepare your data", "2. Understand spending"], ["Review transactions, check currencies and download a CSV template.", "See totals, category patterns and monthly trends."]):
         with column.container(border=True):
             st.subheader(title); st.write(description)
-            st.button("Open " + title[3:].lower(), key=destination, on_click=navigate, args=(destination,))
+            st.button("Review transactions" if destination == "Transaction Explorer" else "View spending", key=destination, on_click=navigate, args=(destination,))
     for column, destination, title, description in zip(st.columns(2), ["Model Pipelines", "FairnessLens"], ["3. Explore model insights", "4. Compare groups"], ["Suggest merchant categories or explore historical spending forecasts.", "Use authorized labels to review age, gender or ethnicity spending differences."]):
         with column.container(border=True):
             st.subheader(title); st.write(description)
-            st.button("Open " + title[3:].lower(), key=destination, on_click=navigate, args=(destination,))
+            st.button("Explore models" if destination == "Model Pipelines" else "Compare groups", key=destination, on_click=navigate, args=(destination,))
     st.caption("Group differences are screening signals, not proof of discrimination. Model results on synthetic data do not establish real-world accuracy.")
     with st.expander("About SpendLens & model performance"):
         st.write("SpendLens supports enterprise spending analysis with two separately fine-tuned Transformers: MiniLM for merchant categories and Chronos-Bolt for monthly spending. Training and evaluation are separate from this app.")
@@ -133,6 +133,7 @@ elif page == "Transaction Explorer":
     st.download_button("Download current transactions", data.to_csv(index=False), "transactions.csv", "text/csv")
     with st.expander("CSV format & merchant category reference"):
         st.write("Keep original amounts and ISO currency codes in your upload. The displayed export also includes converted amounts and FX audit fields.")
+        st.download_button("Download sample CSV template", demo().to_csv(index=False), "spendlens_template.csv", "text/csv")
         st.dataframe(pd.DataFrame(REFERENCE).T.rename_axis("MCC"), use_container_width=True)
         st.caption(f"Five-code reviewed crosswalk; other MCCs remain unmapped. Version: {VERSION}.")
         st.markdown(f"[Open original MCC manual]({SOURCE})")
