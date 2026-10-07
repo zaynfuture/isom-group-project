@@ -10,6 +10,8 @@ from model.inference.registry import BASE_MODEL, BASE_MODELS, available, load, i
 from model.inference.forecasting import numeric_examples, predict_amounts
 from model.data.mcc_reference import SOURCE, SPENDING_VERSION as VERSION, SPENDING_REFERENCE as REFERENCE
 from model.data.scenarios import scenario_transactions
+from model.experiments import merchant_split
+from model.evaluation_quality import merchant_overlap
 from app.services.currency import (COMMON_CURRENCIES, currency_label, money, fetch_catalog,
     fetch_snapshot, FXBook, FXError, convert_transactions, display_forecast)
 
@@ -57,9 +59,7 @@ def task_status(task):
     result = evidence(task)
     if not result:
         return "Awaiting fine-tuning"
-    score = result["test"]["test_macro_f1"]
-    target_met = score >= .8 if task == "merchant" else score > result["baseline"]["macro_f1"]
-    return "Trained · target met" if target_met else "Trained · target not met"
+    return "Trained · external validation pending"
 
 data = demo()
 if source == "Upload transactions":
@@ -231,16 +231,25 @@ elif page == "FairnessLens":
 
 else:
     st.write("Task-specific evidence is generated only after fine-tuning. Previous FairnessLens demographic results do not evaluate these models.")
+    st.info("These are historical synthetic-data results, not an industry benchmark. Acceptance criteria must be defined for the intended business use and validated on representative independent data.")
     for task in ["merchant", "forecast"]:
         st.subheader(task.title())
         path = ROOT / "model" / "artifacts" / deployed(task).get("artifact_dir",f"spendlens_{task}") / "evaluation.json"
         if path.exists():
             result = json.loads(path.read_text())
             a,b = st.columns(2)
-            a.metric("Test Macro-F1", f"{result['test']['test_macro_f1']:.3f}")
+            synthetic = 'synthetic' in result.get('data_source', '').lower()
+            a.metric("Synthetic test Macro-F1" if synthetic else "Test Macro-F1", f"{result['test']['test_macro_f1']:.3f}")
             b.metric("Baseline Macro-F1", f"{result['baseline']['macro_f1']:.3f}")
             st.write(task_status(task))
             st.caption(f"Baseline: {result['baseline']['name']}. Data: {result['data_source']}.")
+            if task == 'merchant' and synthetic:
+                st.warning("The legacy test reuses five merchant-name templates from training. A perfect score does not establish performance on unseen merchants. External validation is pending; probabilities are not calibrated confidence guarantees.")
+                overlap = merchant_overlap(merchant_split(demo_transactions()))
+                st.caption(f"Legacy fixture audit: {overlap['test_card_overlap_count']} shared cards; {overlap['test_template_overlap_rate']:.0%} of test rows reuse a training name template; {overlap['test_exact_description_overlap_rate']:.1%} reuse an exact description. This audits the legacy fixture, not uploaded transactions.")
+                st.write("Before deployment approval: evaluate independent merchants and later transactions, compare with a lexical classification baseline, report per-class precision/recall and uncertainty, and validate unknown-category rejection on out-of-scope merchants. The majority-class baseline alone is a weak comparison.")
+            elif task == 'forecast' and result['test']['test_macro_f1'] <= result['baseline']['macro_f1']:
+                st.warning("Spending-band Macro-F1 does not beat the baseline. Review amount MAE separately; this forecast remains experimental.")
             if "test_mae" in result["test"]:
                 c,d = st.columns(2)
                 c.metric("Test amount MAE (USD)",f"{result['test']['test_mae']:.2f}")
