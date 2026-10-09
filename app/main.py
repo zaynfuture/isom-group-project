@@ -10,7 +10,7 @@ from model.inference.registry import BASE_MODEL, BASE_MODELS, available, load, i
 from model.inference.forecasting import numeric_examples, predict_amounts
 from model.data.mcc_reference import SOURCE, SPENDING_VERSION as VERSION, SPENDING_REFERENCE as REFERENCE
 from model.data.scenarios import scenario_transactions
-from model.experiments import merchant_split
+from model.experiments import merchant_split, forecast_split
 from model.evaluation_quality import merchant_overlap
 from app.services.currency import (COMMON_CURRENCIES, currency_label, money, fetch_catalog,
     fetch_snapshot, FXBook, FXError, convert_transactions, display_forecast)
@@ -110,6 +110,16 @@ with st.sidebar.expander("Exchange rates & audit"):
 if page == "Business Overview":
     st.header("From transactions to insights")
     st.write("Analyze enterprise card spending and compare group behavior in four steps.")
+    with st.expander("Business objectives & acceptance criteria"):
+        st.write("Company / project organization: SpendLens. Product: SpendLens. Target users: enterprise spending analysts, finance operations teams and responsible-AI reviewers.")
+        st.write("Business objectives: reduce manual merchant categorization, support monthly spending planning, and make aggregate group-disparity reviews reproducible.")
+        st.markdown("Proposed acceptance criteria — project targets, not industry standards or achieved results:")
+        st.dataframe(pd.DataFrame([
+            {'Objective':'Reduce manual categorization', 'Proposed criterion':'At least 20% less review time than manual-only processing on the same independently labeled batch', 'Status':'Not measured; user study required'},
+            {'Objective':'Reliable merchant suggestions', 'Proposed criterion':'Macro-F1 >= 0.80 and higher than a lexical baseline on independent merchants', 'Status':'Not validated on independent merchants'},
+            {'Objective':'Improve spending planning', 'Proposed criterion':'At least 5% lower amount MAE than the two-month average baseline on a fresh temporal holdout', 'Status':'Not achieved in historical demo: approximately 2.7% lower MAE'},
+            {'Objective':'Reproducible disparity screening', 'Proposed criterion':'Report group counts, effect sizes, adjusted p-values and uncertainty; suppress small groups', 'Status':'Implemented; not a discrimination verdict'},
+        ]), hide_index=True, use_container_width=True)
     st.success("Demo data is ready — no upload or setup required." if source == "Synthetic demo" else "Your data is loaded. Continue with spending analysis.")
     st.button("Explore demo spending" if source == "Synthetic demo" else "Explore your spending", type="primary", on_click=navigate, args=("Spending Analytics",))
     for column, destination, title, description in zip(st.columns(2), ["Transaction Explorer", "Spending Analytics"], ["1. Prepare your data", "2. Understand spending"], ["Review transactions, check currencies and download a CSV template.", "See totals, category patterns and monthly trends."]):
@@ -132,6 +142,16 @@ elif page == "Transaction Explorer":
     st.caption("All records are available below; scroll inside the table.")
     st.dataframe(data, height=550, hide_index=True, use_container_width=True)
     st.download_button("Download current transactions", data.to_csv(index=False), "transactions.csv", "text/csv")
+    with st.expander("Model training, validation & testing datasets"):
+        st.caption("Reconstructed full-size legacy synthetic partitions used by the model workflow, not the uploaded data or the 14-category lifestyle demo. Amounts below remain USD regardless of reporting currency. Browsing test labels is for audit, not model selection.")
+        dataset_task = st.selectbox("Training dataset task", ['Merchant classification', 'Forecast'])
+        partitions = merchant_split(demo_transactions()) if dataset_task == 'Merchant classification' else forecast_split(demo_transactions())
+        st.write("Merchant splits hold out cards, but share merchant templates. Forecast splits hold out target months; cards can recur across time. Model inputs exclude demographic labels.")
+        for panel, (split, records) in zip(st.tabs(['Training', 'Validation', 'Testing']), partitions.items()):
+            with panel:
+                st.caption(f"{split.title()}: {len(records):,} rows · {records.card_id.nunique()} cards. All rows are available; scroll within the table.")
+                st.dataframe(records, height=450, hide_index=True, use_container_width=True)
+                st.download_button(f"Download {split} CSV", records.to_csv(index=False), f"{dataset_task.lower().replace(' ', '_')}_{split}.csv", 'text/csv', key=f'dataset_{split}')
     if source == "Synthetic demo":
         with st.expander("What is included in this demo?"):
             st.write("14 spending categories and six equally represented simulated lifestyles, with variable activity, category-specific purchase amounts, recurring bills and weekday/weekend preferences. These are design assumptions, not measured population statistics or inferred identities.")
